@@ -16,7 +16,8 @@ if(page_id){
   try{
     const metrics='page_impressions,page_impressions_organic,page_reach,page_engaged_users,page_fan_adds,page_fan_removes,page_views_total,page_post_engagements';
     const[rI,rP,rF]=await Promise.all([
-organic.js      fetch('https://graph.facebook.com/v19.0/'+page_id+'/posts?fields=id,message,created_time,insights.metric(post_impressions,post_impressions_organic,post_engaged_users,post_clicks,post_reactions_total)&since='+s+'&until='+u+'&limit=20&access_token='+token),
+      fetch('https://graph.facebook.com/v19.0/'+page_id+'/insights?metric='+metrics+'&period=day&since='+s+'&until='+u+'&access_token='+token),
+      fetch('https://graph.facebook.com/v19.0/'+page_id+'/posts?fields=id,message,created_time,insights.metric(post_impressions,post_impressions_organic,post_engaged_users,post_clicks,post_reactions_total)&since='+s+'&until='+u+'&limit=20&access_token='+token),
       fetch('https://graph.facebook.com/v19.0/'+page_id+'?fields=name,fan_count,followers_count,talking_about_count&access_token='+token)
     ]);
     const[dI,dP,dF]=await Promise.all([rI.json(),rP.json(),rF.json()]);
