@@ -5,9 +5,9 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const META_ACCOUNTS={'grand-bar':'act_4152259048398395','la-vene':'act_127677109213204','samaco':'act_1153422045104277','pinta-mkt':'act_193502403381136','ipoint':'act_1366068537323661','dr-burela':'act_916281750024729','bermudez-moya':'act_335381199272442','cubos-de-chacras':'act_557798890125953','luly-lupe':'act_925977716485358','gandolfo':'act_121743560347797'};
 
-const FB_PAGES={'grand-bar':'1161529683700328','luly-lupe':'899148866606170','cubos-de-chacras':'588794477655674','gandolfo':'209132348942245','dr-burela':'123108927556257','samaco':'1525936594297047','bermudez-moya':'2270673449865573'};
+const FB_PAGES={'grand-bar':'1161529683700328','luly-lupe':'899148866606170','cubos-de-chacras':'588794477655674','gandolfo':'209132348942245','dr-burela':'123108927556257','samaco':'1525936594297047','bermudez-moya':'2270673449865573','la-vitta':'100583718276511'};
 
-const IG_ACCOUNTS={'gandolfo':'17841439626709103','samaco':'17841412999937350','bermudez-moya':'17841410658734825'};
+const IG_ACCOUNTS={'gandolfo':'17841439626709103','samaco':'17841412999937350','bermudez-moya':'17841410658734825','la-vitta':'17841431810785224'};
 
 const LC={meta:'Meta Ads',google_ads:'Google Ads',ga4:'GA4',mensajes:'Mensajes',wordpress:'WordPress',search_console:'Search Console'};
 function fmt(n,dec=0){if(!n&&n!==0)return'—';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return typeof n==='number'?n.toFixed(dec):String(Math.round(n));}
