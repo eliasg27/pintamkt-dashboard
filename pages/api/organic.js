@@ -9,53 +9,94 @@ export default async function handler(req, res) {
 
   if (!page_id && !ig_id) {
     try {
-      const r = await fetch('https://graph.facebook.com/v19.0/me/accounts?fields=name,id,instagram_business_account,fan_count,followers_count&access_token=' + token);
+      const r = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=name,id,instagram_business_account,fan_count&access_token=${token}`);
       const d = await r.json();
-      if (d.error) return res.status(400).json({ error: d.error.message, full: d.error });
+      if (d.error) return res.status(400).json({ error: d.error.message, code: d.error.code });
       return res.json(d);
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
 
+  // FACEBOOK ORGÁNICO
   if (page_id) {
     try {
-      const metrics = 'page_impressions,page_impressions_organic,page_reach,page_engaged_users,page_fan_adds,page_fan_removes,page_views_total,page_post_engagements';
-      const [rI, rP, rF] = await Promise.all([
-        fetch('https://graph.facebook.com/v19.0/' + page_id + '/insights?metric=' + metrics + '&period=day&since=' + s + '&until=' + u + '&access_token=' + token),
-        fetch('https://graph.facebook.com/v19.0/' + page_id + '/posts?fields=id,message,created_time,insights.metric(post_impressions,post_impressions_organic,post_engaged_users,post_clicks,post_reactions_total)&since=' + s + '&until=' + u + '&limit=20&access_token=' + token),
-        fetch('https://graph.facebook.com/v19.0/' + page_id + '?fields=name,fan_count,followers_count,talking_about_count&access_token=' + token)
+      // Métricas actuales de Facebook Pages (2024+)
+      const metrics = [
+        'page_post_engagements',
+        'page_fan_adds',
+        'page_fan_removes',
+        'page_views_total',
+        'page_impressions',
+        'page_impressions_organic_v2',
+        'page_reach',
+        'page_engaged_users',
+      ].join(',');
+
+      const [rI, rF] = await Promise.all([
+        fetch(`https://graph.facebook.com/v21.0/${page_id}/insights?metric=${metrics}&period=day&since=${s}&until=${u}&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${page_id}?fields=name,fan_count,followers_count&access_token=${token}`)
       ]);
-      const [dI, dP, dF] = await Promise.all([rI.json(), rP.json(), rF.json()]);
-      // Log completo para debug
+      const [dI, dF] = await Promise.all([rI.json(), rF.json()]);
+
       if (dI.error) {
         console.error('FB Insights error:', JSON.stringify(dI.error));
-        return res.status(400).json({ error: dI.error.message, code: dI.error.code, type: dI.error.type, fbtrace: dI.error.fbtrace_id });
+        return res.status(400).json({ error: dI.error.message, code: dI.error.code });
       }
+
       const totals = {};
-      (dI.data || []).forEach(m => { totals[m.name] = (m.values || []).reduce((s, v) => s + (v.value || 0), 0); });
+      (dI.data || []).forEach(m => {
+        totals[m.name] = (m.values || []).reduce((acc, v) => acc + (typeof v.value === 'number' ? v.value : 0), 0);
+      });
       totals.fans_total = dF.fan_count || 0;
-      totals.followers_total = dF.followers_count || 0;
-      return res.json({ type: 'facebook', page: dF, totals, posts: dP.data || [], period: { since: s, until: u } });
+
+      return res.json({ type: 'facebook', page: dF, totals, period: { since: s, until: u } });
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
 
+  // INSTAGRAM ORGÁNICO
   if (ig_id) {
     try {
-      const igM = 'impressions,reach,profile_views,follower_count,accounts_engaged';
+      // Métricas actuales de Instagram Business (2024+)
+      const igMetrics = [
+        'reach',
+        'profile_views',
+        'accounts_engaged',
+        'total_interactions',
+        'likes',
+        'comments',
+        'shares',
+        'saves',
+        'follows_and_unfollows',
+        'website_clicks',
+      ].join(',');
+
       const [rI, rP, rF] = await Promise.all([
-        fetch('https://graph.facebook.com/v19.0/' + ig_id + '/insights?metric=' + igM + '&period=day&since=' + s + '&until=' + u + '&access_token=' + token),
-        fetch('https://graph.facebook.com/v19.0/' + ig_id + '/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,insights.metric(impressions,reach,engagement,likes,comments,saved,shares)&since=' + s + '&until=' + u + '&limit=20&access_token=' + token),
-        fetch('https://graph.facebook.com/v19.0/' + ig_id + '?fields=name,username,followers_count,media_count&access_token=' + token)
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${igMetrics}&period=day&since=${s}&until=${u}&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${s}&until=${u}&limit=20&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`)
       ]);
       const [dI, dP, dF] = await Promise.all([rI.json(), rP.json(), rF.json()]);
-      // Log completo para debug
+
       if (dI.error) {
         console.error('IG Insights error:', JSON.stringify(dI.error));
-        return res.status(400).json({ error: dI.error.message, code: dI.error.code, type: dI.error.type, fbtrace: dI.error.fbtrace_id });
+        return res.status(400).json({ error: dI.error.message, code: dI.error.code });
       }
+
       const totals = {};
-      (dI.data || []).forEach(m => { totals[m.name] = (m.values || []).reduce((s, v) => s + (typeof v.value === 'number' ? v.value : 0), 0); });
+      (dI.data || []).forEach(m => {
+        totals[m.name] = (m.values || []).reduce((acc, v) => {
+          const val = v.value;
+          return acc + (typeof val === 'number' ? val : 0);
+        }, 0);
+      });
       totals.followers_total = dF.followers_count || 0;
-      return res.json({ type: 'instagram', account: dF, totals, posts: dP.data || [], period: { since: s, until: u } });
+
+      return res.json({
+        type: 'instagram',
+        account: dF,
+        totals,
+        posts: dP.data || [],
+        period: { since: s, until: u }
+      });
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
 
