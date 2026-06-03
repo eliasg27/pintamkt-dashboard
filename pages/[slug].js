@@ -38,12 +38,31 @@ function Dlt({ v }) {
   );
 }
  
-function KPI({ label, val, sub, delta }) {
+function KPI({ label, val, sub, delta, invertDelta }) {
+  // invertDelta: true para métricas donde bajar es bueno (CPM, CPC, spend)
+  const isGood = delta == null ? null : (invertDelta ? delta <= 0 : delta >= 0);
   return (
-    <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 12, padding: '1rem 1.1rem' }}>
+    <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 12, padding: '1rem 1.1rem', position: 'relative', overflow: 'hidden' }}>
+      {delta != null && (
+        <div style={{
+          position: 'absolute', top: 0, right: 0, left: 0, height: 3,
+          background: isGood ? '#1D9E75' : '#E53935', borderRadius: '12px 12px 0 0'
+        }} />
+      )}
       <div style={{ fontSize: 10, color: '#9c9a92', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-.02em' }}>{val}</div>
-      <div style={{ fontSize: 11, color: '#9c9a92', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>{sub}<Dlt v={delta} /></div>
+      <div style={{ fontSize: 11, color: '#9c9a92', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{sub}</span>
+        {delta != null && (
+          <span style={{
+            fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20,
+            background: isGood ? '#E1F5EE' : '#FBEAEA',
+            color: isGood ? '#0F6E56' : '#C62828'
+          }}>
+            {delta > 0 ? '↑' : '↓'}{Math.abs(delta)}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -269,11 +288,11 @@ export default function ClientePage() {
               <KPI label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} />
               <KPI label="Impresiones" val={fmt(t.impressions)} sub="total" delta={dl.impressions} />
               <KPI label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} />
-              <KPI label="Gasto" val={fm(t.spend)} sub="total" delta={dl.spend} />
+              <KPI label="Gasto" val={fm(t.spend)} sub="total" delta={dl.spend} invertDelta />
             </div>
             <div style={g4}>
-              <KPI label="CPM" val={fm(t.cpm)} sub="por mil imp." delta={dl.cpm} />
-              <KPI label="CPC" val={fm(t.cpc)} sub="por clic" delta={dl.cpc} />
+              <KPI label="CPM" val={fm(t.cpm)} sub="por mil imp." delta={dl.cpm} invertDelta />
+              <KPI label="CPC" val={fm(t.cpc)} sub="por clic" delta={dl.cpc} invertDelta />
               <KPI label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} />
               <KPI label="Frecuencia" val={t.frequency ? t.frequency.toFixed(2) : '—'} sub="veces/persona" />
             </div>
@@ -294,8 +313,8 @@ export default function ClientePage() {
           ) : <>
             <div style={g4}>
               <KPI label="CTR" val={fp(t.ctr)} sub="click-through rate" delta={dl.ctr} />
-              <KPI label="CPM" val={fm(t.cpm)} sub="costo por mil" delta={dl.cpm} />
-              <KPI label="CPC" val={fm(t.cpc)} sub="costo por clic" delta={dl.cpc} />
+              <KPI label="CPM" val={fm(t.cpm)} sub="costo por mil" delta={dl.cpm} invertDelta />
+              <KPI label="CPC" val={fm(t.cpc)} sub="costo por clic" delta={dl.cpc} invertDelta />
               <KPI label="Frecuencia" val={t.frequency ? t.frequency.toFixed(2) : '—'} sub="veces/persona" />
             </div>
             <div style={card}>
@@ -304,11 +323,15 @@ export default function ClientePage() {
                 <canvas ref={ref} role="img" aria-label="Rendimiento" />
               </div>
             </div>
-            {md.totalsPrev && (
-              <div style={{ padding: '10px 14px', background: '#f8f7f4', borderRadius: 10, fontSize: 12, color: '#9c9a92' }}>
-                Período anterior: CPM {fm(md.totalsPrev?.cpm)} · CPC {fm(md.totalsPrev?.cpc)} · CTR {fp(md.totalsPrev?.ctr)}
-              </div>
-            )}
+            <div style={{ padding: '12px 16px', background: '#f8f7f4', borderRadius: 10, fontSize: 12, color: '#6b6a65', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 600, color: '#9c9a92', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>Período anterior</span>
+              <span>CPM {fm(md.totalsPrev?.cpm)}</span>
+              <span>CPC {fm(md.totalsPrev?.cpc)}</span>
+              <span>CTR {fp(md.totalsPrev?.ctr)}</span>
+              <span>Alcance {fmt(md.totalsPrev?.reach)}</span>
+              <span>Clics {fmt(md.totalsPrev?.clicks)}</span>
+              <span>Gasto {fm(md.totalsPrev?.spend)}</span>
+            </div>
           </>
         )}
  
