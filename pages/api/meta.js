@@ -5,7 +5,6 @@ export default async function handler(req, res) {
 
   const { account_id, since, until } = req.query;
 
-  // Sin account_id → devuelve lista de cuentas disponibles
   if (!account_id) {
     try {
       const r = await fetch(
@@ -21,11 +20,21 @@ export default async function handler(req, res) {
 
   const s = since || ago(30);
   const u = until || today();
+
+  // Calcular período anterior (misma duración)
+  const diffDays = Math.round((new Date(u) - new Date(s)) / (1000 * 60 * 60 * 24));
+  const prevUntil = new Date(s);
+  prevUntil.setDate(prevUntil.getDate() - 1);
+  const prevSince = new Date(prevUntil);
+  prevSince.setDate(prevSince.getDate() - diffDays);
+  const sPrev = prevSince.toISOString().slice(0, 10);
+  const uPrev = prevUntil.toISOString().slice(0, 10);
+
   const timeRange = `{"since":"${s}","until":"${u}"}`;
+  const timeRangePrev = `{"since":"${sPrev}","until":"${uPrev}"}`;
 
   try {
-    // Llamadas en paralelo: insights diarios + insights por campaña
-    const [rDaily, rCampaigns] = await Promise.all([
+    const [rDaily, rCampaigns, rPrev] = await Promise.all([
       fetch(
         `https://graph.facebook.com/v19.0/${account_id}/insights` +
         `?fields=impressions,clicks,spend,reach,cpm,cpc,ctr,frequency,actions` +
@@ -36,55 +45,80 @@ export default async function handler(req, res) {
         `?fields=campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
         `&time_range=${timeRange}&level=campaign&limit=50&access_token=${token}`
       ),
+      fetch(
+        `https://graph.facebook.com/v19.0/${account_id}/insights` +
+        `?fields=impressions,clicks,spend,reach,actions` +
+        `&time_range=${timeRangePrev}&time_increment=1&access_token=${token}`
+      ),
     ]);
 
-    const [dDaily, dCampaigns] = await Promise.all([rDaily.json(), rCampaigns.json()]);
+    const [dDaily, dCampaigns, dPrev] = await Promise.all([
+      rDaily.json(), rCampaigns.json(), rPrev.json()
+    ]);
 
     if (dDaily.error) return res.status(400).json({ error: dDaily.error.message });
 
     const rows = dDaily.data || [];
     const camps = dCampaigns.data || [];
+    const rowsPrev = dPrev.data || [];
 
-    // Totales agregados desde datos diarios
-    const totals = rows.reduce((acc, row) => {
-      acc.impressions = (acc.impressions || 0) + parseInt(row.impressions || 0);
-      acc.clicks      = (acc.clicks || 0)      + parseInt(row.clicks || 0);
-      acc.spend       = (acc.spend || 0)        + parseFloat(row.spend || 0);
-      acc.reach       = (acc.reach || 0)        + parseInt(row.reach || 0);
-
-      // Acciones: mensajes, leads, compras
-      for (const a of (row.actions || [])) {
-        if (
-          a.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
-          a.action_type === 'onsite_conversion.messaging_first_reply'
-        ) {
-          acc.messages = (acc.messages || 0) + parseInt(a.value || 0);
+    // Calcular totales
+    const calcTotals = (data) => {
+      const t = data.reduce((acc, row) => {
+        acc.impressions = (acc.impressions || 0) + parseInt(row.impressions || 0);
+        acc.clicks      = (acc.clicks || 0)      + parseInt(row.clicks || 0);
+        acc.spend       = (acc.spend || 0)        + parseFloat(row.spend || 0);
+        acc.reach       = (acc.reach || 0)        + parseInt(row.reach || 0);
+        for (const a of (row.actions || [])) {
+          if (
+            a.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
+            a.action_type === 'onsite_conversion.messaging_first_reply'
+          ) { acc.messages = (acc.messages || 0) + parseInt(a.value || 0); }
+          if (a.action_type === 'lead') { acc.leads = (acc.leads || 0) + parseInt(a.value || 0); }
+          if (a.action_type === 'purchase' || a.action_type === 'omni_purchase') {
+            acc.purchases = (acc.purchases || 0) + parseInt(a.value || 0);
+          }
         }
-        if (a.action_type === 'lead') {
-          acc.leads = (acc.leads || 0) + parseInt(a.value || 0);
-        }
-        if (a.action_type === 'purchase' || a.action_type === 'omni_purchase') {
-          acc.purchases = (acc.purchases || 0) + parseInt(a.value || 0);
-        }
+        return acc;
+      }, {});
+      if (t.impressions > 0) {
+        t.cpm       = (t.spend / t.impressions) * 1000;
+        t.ctr       = (t.clicks / t.impressions) * 100;
+        t.frequency = t.reach > 0 ? t.impressions / t.reach : null;
       }
-      return acc;
-    }, {});
+      if (t.clicks > 0) { t.cpc = t.spend / t.clicks; }
+      return t;
+    };
 
-    // CPM, CPC, CTR, Frecuencia: se calculan sobre totales (no promedio de promedios)
-    if (totals.impressions > 0) {
-      totals.cpm       = (totals.spend / totals.impressions) * 1000;
-      totals.ctr       = (totals.clicks / totals.impressions) * 100;
-      totals.frequency = totals.reach > 0 ? totals.impressions / totals.reach : null;
-    }
-    if (totals.clicks > 0) {
-      totals.cpc = totals.spend / totals.clicks;
-    }
+    const totals = calcTotals(rows);
+    const totalsPrev = calcTotals(rowsPrev);
+
+    // Calcular deltas % redondeados
+    const delta = (cur, prev) => {
+      if (!prev || prev === 0) return null;
+      return Math.round(((cur - prev) / prev) * 100);
+    };
+
+    const deltas = {
+      reach:       delta(totals.reach, totalsPrev.reach),
+      impressions: delta(totals.impressions, totalsPrev.impressions),
+      clicks:      delta(totals.clicks, totalsPrev.clicks),
+      spend:       delta(totals.spend, totalsPrev.spend),
+      cpm:         delta(totals.cpm, totalsPrev.cpm),
+      cpc:         delta(totals.cpc, totalsPrev.cpc),
+      ctr:         delta(totals.ctr, totalsPrev.ctr),
+      messages:    delta(totals.messages, totalsPrev.messages),
+      leads:       delta(totals.leads, totalsPrev.leads),
+    };
 
     return res.json({
       daily: rows,
       totals,
+      totalsPrev,
+      deltas,
       campaigns: camps,
       period: { since: s, until: u },
+      periodPrev: { since: sPrev, until: uPrev },
     });
   } catch (e) {
     return res.status(500).json({ error: e.message });
