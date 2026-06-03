@@ -4,14 +4,16 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'META_ACCESS_TOKEN no configurado' });
 
   const { page_id, ig_id, since, until } = req.query;
-  const s = since || ago(30);
-  const u = until || today();
+
+  // Calcular rango — máximo 30 días para IG insights
+  const untilDate = until || today();
+  const sinceDate = since || ago(30);
 
   if (!page_id && !ig_id) {
     try {
-      const r = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=name,id,instagram_business_account,fan_count&access_token=${token}`);
+      const r = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=name,id,access_token,fan_count&access_token=${token}`);
       const d = await r.json();
-      if (d.error) return res.status(400).json({ error: d.error.message, code: d.error.code });
+      if (d.error) return res.status(400).json({ error: d.error.message });
       return res.json(d);
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
@@ -19,23 +21,31 @@ export default async function handler(req, res) {
   // FACEBOOK ORGÁNICO
   if (page_id) {
     try {
-      // Métricas actuales de Facebook Pages (2024+)
+      // Obtener page access token desde el user token
+      const rAccounts = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,fan_count,followers_count&access_token=${token}`);
+      const dAccounts = await rAccounts.json();
+      if (dAccounts.error) return res.status(400).json({ error: dAccounts.error.message });
+
+      const pageData = (dAccounts.data || []).find(p => p.id === page_id);
+      if (!pageData) return res.status(404).json({ error: 'Página no encontrada en las cuentas del token' });
+
+      const pageToken = pageData.access_token;
+
+      // Métricas válidas en v21 para páginas
       const metrics = [
-        'page_post_engagements',
-        'page_fan_adds',
-        'page_fan_removes',
-        'page_views_total',
-        'page_impressions',
-        'page_impressions_organic_v2',
-        'page_reach',
-        'page_engaged_users',
+        'page_total_actions',
+        'page_impressions_unique',
+        'page_daily_follows',
+        'page_daily_follows_unique',
+        'page_video_views',
       ].join(',');
 
-      const [rI, rF] = await Promise.all([
-        fetch(`https://graph.facebook.com/v21.0/${page_id}/insights?metric=${metrics}&period=day&since=${s}&until=${u}&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${page_id}?fields=name,fan_count,followers_count&access_token=${token}`)
+      const [rI, rPosts] = await Promise.all([
+        fetch(`https://graph.facebook.com/v21.0/${page_id}/insights?metric=${metrics}&period=day&since=${sinceDate}&until=${untilDate}&access_token=${pageToken}`),
+        fetch(`https://graph.facebook.com/v21.0/${page_id}/posts?fields=id,message,created_time,full_picture,likes.summary(true),comments.summary(true),shares&since=${sinceDate}&until=${untilDate}&limit=10&access_token=${pageToken}`)
       ]);
-      const [dI, dF] = await Promise.all([rI.json(), rF.json()]);
+
+      const [dI, dPosts] = await Promise.all([rI.json(), rPosts.json()]);
 
       if (dI.error) {
         console.error('FB Insights error:', JSON.stringify(dI.error));
@@ -46,17 +56,29 @@ export default async function handler(req, res) {
       (dI.data || []).forEach(m => {
         totals[m.name] = (m.values || []).reduce((acc, v) => acc + (typeof v.value === 'number' ? v.value : 0), 0);
       });
-      totals.fans_total = dF.fan_count || 0;
 
-      return res.json({ type: 'facebook', page: dF, totals, period: { since: s, until: u } });
-    } catch (e) { return res.status(500).json({ error: e.message }); }
+      return res.json({
+        type: 'facebook',
+        page: {
+          id: pageData.id,
+          name: pageData.name,
+          fan_count: pageData.fan_count,
+          followers_count: pageData.followers_count,
+        },
+        totals,
+        posts: dPosts.data || [],
+        period: { since: sinceDate, until: untilDate }
+      });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   // INSTAGRAM ORGÁNICO
   if (ig_id) {
     try {
-      // Métricas actuales de Instagram Business (2024+)
-      const igMetrics = [
+      // Métricas que requieren metric_type=total_value (nuevas métricas 2024+)
+      const metricsTotal = [
         'reach',
         'profile_views',
         'accounts_engaged',
@@ -65,39 +87,40 @@ export default async function handler(req, res) {
         'comments',
         'shares',
         'saves',
-        'follows_and_unfollows',
         'website_clicks',
+        'follows_and_unfollows',
       ].join(',');
 
-      const [rI, rP, rF] = await Promise.all([
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${igMetrics}&period=day&since=${s}&until=${u}&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${s}&until=${u}&limit=20&access_token=${token}`),
+      const [rI, rMedia, rAccount] = await Promise.all([
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${sinceDate}&until=${untilDate}&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${sinceDate}&until=${untilDate}&limit=12&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`)
       ]);
-      const [dI, dP, dF] = await Promise.all([rI.json(), rP.json(), rF.json()]);
+
+      const [dI, dMedia, dAccount] = await Promise.all([rI.json(), rMedia.json(), rAccount.json()]);
 
       if (dI.error) {
         console.error('IG Insights error:', JSON.stringify(dI.error));
         return res.status(400).json({ error: dI.error.message, code: dI.error.code });
       }
 
+      // Con metric_type=total_value, los datos vienen en total_value.value
       const totals = {};
       (dI.data || []).forEach(m => {
-        totals[m.name] = (m.values || []).reduce((acc, v) => {
-          const val = v.value;
-          return acc + (typeof val === 'number' ? val : 0);
-        }, 0);
+        totals[m.name] = m.total_value?.value ?? 0;
       });
-      totals.followers_total = dF.followers_count || 0;
+      totals.followers_total = dAccount.followers_count || 0;
 
       return res.json({
         type: 'instagram',
-        account: dF,
+        account: dAccount,
         totals,
-        posts: dP.data || [],
-        period: { since: s, until: u }
+        posts: dMedia.data || [],
+        period: { since: sinceDate, until: untilDate }
       });
-    } catch (e) { return res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   return res.status(400).json({ error: 'Requiere page_id o ig_id' });
