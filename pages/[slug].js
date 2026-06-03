@@ -109,7 +109,10 @@ export default function ClientePage() {
     if (mods.instagram_organico && c.ig_account_id) {
       setIgLoading(true);
       setIg(null);
-      fetch(`/api/organic?ig_id=${c.ig_account_id}&since=${df}&until=${dt}`)
+      // IG insights: Meta limita a max 30 dias
+      const igDiff = (new Date(dt) - new Date(df)) / (1000*60*60*24);
+      const igSince = igDiff > 30 ? (() => { const d = new Date(dt); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); })() : df;
+      fetch(`/api/organic?ig_id=${c.ig_account_id}&since=${igSince}&until=${dt}`)
         .then(r => r.json())
         .then(d => { if (!d.error) setIg(d); else console.error('IG organic error:', d.error); })
         .catch(e => console.error('IG fetch error:', e))
