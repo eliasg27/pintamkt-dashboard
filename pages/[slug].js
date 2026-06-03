@@ -374,18 +374,45 @@ export default function ClientePage() {
           ) : !fb ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos de Facebook orgánico.</div>
           ) : <>
+            {/* Header de página */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 16px', background: '#fff', borderRadius: 12, border: '.5px solid rgba(0,0,0,.09)' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>📘</div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{fb.page?.name}</div>
+                <div style={{ fontSize: 12, color: '#9c9a92' }}>{fmt(fb.page?.fan_count)} seguidores · {fb.page?.talking_about_count || 0} hablando de esto</div>
+              </div>
+            </div>
+            {/* KPIs */}
             <div style={g4}>
               <KPI label="Fans" val={fmt(fb.page?.fan_count)} sub="total" />
-              <KPI label="Alcance org." val={fmt(fb.totals?.page_reach)} sub="período" />
-              <KPI label="Impresiones" val={fmt(fb.totals?.page_impressions_organic)} sub="orgánicas" />
-              <KPI label="Engagement" val={fmt(fb.totals?.page_engaged_users)} sub="usuarios" />
+              <KPI label="Seguidores" val={fmt(fb.page?.followers_count)} sub="total" />
+              <KPI label="Hablando" val={fmt(fb.page?.talking_about_count)} sub="esta semana" />
+              <KPI label="Interacciones" val={fmt(fb.totals?.page_total_actions) || '—'} sub="período" />
             </div>
-            <div style={g4}>
-              <KPI label="Nuevos fans" val={fmt(fb.totals?.page_fan_adds)} sub="ganados" />
-              <KPI label="Fans perdidos" val={fmt(fb.totals?.page_fan_removes)} sub="bajas" />
-              <KPI label="Visitas" val={fmt(fb.totals?.page_views_total)} sub="a la página" />
-              <KPI label="Post engagement" val={fmt(fb.totals?.page_post_engagements)} sub="interacciones" />
-            </div>
+            {/* Posts recientes */}
+            {fb.posts?.length > 0 && <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Posts recientes</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
+                {fb.posts.slice(0, 9).map((p, i) => (
+                  <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 10, overflow: 'hidden' }}>
+                    {p.full_picture && <img src={p.full_picture} style={{ width: '100%', height: 110, objectFit: 'cover' }} alt="post" onError={e => { e.target.style.display = 'none'; }} />}
+                    <div style={{ padding: 10 }}>
+                      <div style={{ fontSize: 11, color: '#9c9a92', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.message?.slice(0, 60) || '(sin texto)'}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 6, color: '#9c9a92' }}>
+                        <span>❤️ {p.likes?.summary?.total_count || 0}</span>
+                        <span>💬 {p.comments?.summary?.total_count || 0}</span>
+                        <span>🔁 {p.shares?.count || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>}
+            {!fb.posts?.length && (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#9c9a92', fontSize: 12, background: '#fff', borderRadius: 10, border: '.5px solid rgba(0,0,0,.09)' }}>
+                Sin posts en el período seleccionado
+              </div>
+            )}
           </>
         )}
  
