@@ -7,6 +7,20 @@ export default async function handler(req, res) {
   const untilDate = until || today();
   const sinceDate = since || ago(30);
 
+  // Instagram insights: máximo 30 días
+  const igUntilDate = untilDate;
+  const igSinceDate = (() => {
+    const s = new Date(sinceDate);
+    const u = new Date(untilDate);
+    const diffDays = (u - s) / (1000 * 60 * 60 * 24);
+    if (diffDays > 30) {
+      const capped = new Date(u);
+      capped.setDate(capped.getDate() - 30);
+      return capped.toISOString().slice(0, 10);
+    }
+    return sinceDate;
+  })();
+
   if (!page_id && !ig_id) {
     try {
       const r = await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=name,id,access_token,fan_count&access_token=${token}`);
@@ -73,8 +87,8 @@ export default async function handler(req, res) {
       ].join(',');
 
       const [rI, rMedia, rAccount] = await Promise.all([
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${sinceDate}&until=${untilDate}&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${sinceDate}&until=${untilDate}&limit=12&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${igSinceDate}&until=${igUntilDate}&limit=12&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`)
       ]);
 
@@ -96,7 +110,7 @@ export default async function handler(req, res) {
         account: dAccount,
         totals,
         posts: dMedia.data || [],
-        period: { since: sinceDate, until: untilDate }
+        period: { since: igSinceDate, until: igUntilDate }
       });
     } catch (e) {
       return res.status(500).json({ error: e.message });
