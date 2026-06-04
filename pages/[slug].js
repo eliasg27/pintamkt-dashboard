@@ -80,6 +80,18 @@ export default function ClientePage() {
   const [metaLoading, setMetaLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
+  const [vizTypes, setVizTypes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pintamkt_viz_' + (typeof window !== 'undefined' ? window.location.pathname : '')) || '{}'); } catch { return {}; }
+  });
+  const [openMenu, setOpenMenu] = useState(null);
+
+  const setViz = (metric, type) => {
+    const next = { ...vizTypes, [metric]: type };
+    setVizTypes(next);
+    try { localStorage.setItem('pintamkt_viz_' + window.location.pathname, JSON.stringify(next)); } catch {}
+    setOpenMenu(null);
+  };
+  const getViz = (metric, def) => vizTypes[metric] || def;
   const ref = useRef(null);
   const ci = useRef(null);
  
@@ -247,8 +259,28 @@ export default function ClientePage() {
     <>
       <Head><title>{c.nombre} — Reporte pintamkt</title></Head>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, sans-serif; background: #f8f7f4; color: #1a1a18; font-size: 14px; }
+        body { font-family: 'DM Sans', -apple-system, sans-serif; background: #f5f5f2; color: #18181b; font-size: 14px; }
+        .kpi-lbl { font-family: 'Inter', sans-serif; font-size: 10px; color: #a1a1aa; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 5px; }
+        .kpi-val { font-family: 'DM Sans', sans-serif; font-size: 28px; font-weight: 700; color: #18181b; letter-spacing: -.03em; line-height: 1; }
+        .kpi-sub { font-family: 'Inter', sans-serif; font-size: 11px; color: #a1a1aa; margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+        .kpi-badge-up { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #dcfce7; color: #15803d; font-family: 'Inter', sans-serif; }
+        .kpi-badge-dn { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #fee2e2; color: #dc2626; font-family: 'Inter', sans-serif; }
+        .kpi-menu-btn { position: absolute; top: 8px; right: 8px; width: 24px; height: 20px; border: none; background: none; cursor: pointer; color: #d4d4d8; font-size: 13px; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; border-radius: 5px; padding: 0; transition: background .15s, color .15s; }
+        .kpi-menu-btn:hover { background: #f4f4f5; color: #71717a; }
+        .kpi-dropdown { display: none; position: absolute; top: 30px; right: 8px; background: #fff; border: .5px solid rgba(0,0,0,.1); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.08); z-index: 200; min-width: 140px; overflow: hidden; }
+        .kpi-dropdown.open { display: block; }
+        .kpi-dd-title { font-size: 9px; color: #a1a1aa; text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px 4px; font-family: 'Inter', sans-serif; font-weight: 600; }
+        .kpi-dd-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 12px; color: #3f3f46; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .1s; }
+        .kpi-dd-item:hover { background: #f4f4f5; }
+        .kpi-dd-item.active { color: #1D9E75; font-weight: 600; }
+        .spark-wrap { height: 48px; margin-top: 10px; position: relative; }
+        .bar-row { display: flex; gap: 2px; align-items: flex-end; height: 40px; margin-top: 10px; }
+        .prog-track { height: 5px; background: #f4f4f5; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+        .sect-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+        .sect-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .sect-title { font-size: 10px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: .08em; font-family: 'Inter', sans-serif; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media print {
           .np { display: none !important }
@@ -320,157 +352,247 @@ export default function ClientePage() {
         </div>
  
         {/* TAB: RESUMEN */}
-        {activeTab === 'resumen' && (
-          metaLoading && !md ? <Spinner /> :
-          !c.meta_ad_account_id ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Meta Ads configurada.</div>
-          ) : <>
+        {activeTab === 'resumen' && (() => {
+          const KpiCard = ({ id, label, val, sub, delta, invertDelta, color, defViz, dailyData }) => {
+            const viz = getViz(id, defViz);
+            const good = delta == null ? null : (invertDelta ? delta <= 0 : delta >= 0);
+            const isOpen = openMenu === id;
+            const vizOptions = [
+              { key: 'spark', icon: '〰', label: 'Línea' },
+              { key: 'bars', icon: '▐', label: 'Barras' },
+              { key: 'donut', icon: '◔', label: 'Donut' },
+              { key: 'number', icon: '#', label: 'Solo número' },
+            ].filter(o => id !== 'spend' ? o.key !== 'donut' : true);
 
-            {/* FILA 1: Meta Ads grande + IG/FB apilados */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 10, marginBottom: 10 }}>
-
-              {/* META ADS CARD */}
-              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.25rem 1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75' }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Meta Ads</span>
-                  {metaLoading && <div style={{ width: 14, height: 14, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+            return (
+              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative', overflow: 'visible' }}>
+                <div style={{ height: 3, background: color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                <button className="kpi-menu-btn" onClick={e => { e.stopPropagation(); setOpenMenu(isOpen ? null : id); }}>···</button>
+                <div className={'kpi-dropdown' + (isOpen ? ' open' : '')}>
+                  <div className="kpi-dd-title">Visualización</div>
+                  {vizOptions.map(o => (
+                    <div key={o.key} className={'kpi-dd-item' + (viz === o.key ? ' active' : '')} onClick={() => setViz(id, o.key)}>
+                      <span style={{ fontSize: 12, width: 16, textAlign: 'center', color: viz === o.key ? color : '#a1a1aa' }}>{o.icon}</span>
+                      {o.label}
+                    </div>
+                  ))}
                 </div>
-                {md ? <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                    {[
-                      { label: 'Alcance', val: fmt(t.reach), sub: 'personas', delta: dl.reach, inv: false, accent: '#1D9E75' },
-                      { label: 'Clics', val: fmt(t.clicks), sub: 'en anuncios', delta: dl.clicks, inv: false, accent: '#185FA5' },
-                      { label: 'Gasto', val: fm(t.spend), sub: 'total USD', delta: dl.spend, inv: true, accent: '#EF9F27' },
-                      { label: 'CTR', val: fp(t.ctr), sub: 'click rate', delta: dl.ctr, inv: false, accent: '#7F77DD' },
-                    ].map(k => {
-                      const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
-                      return (
-                        <div key={k.label} style={{ borderLeft: '3px solid ' + k.accent, paddingLeft: 12 }}>
-                          <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
-                          <div style={{ fontSize: 28, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.02em', lineHeight: 1.1 }}>{k.val}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                            <span style={{ fontSize: 11, color: '#9c9a92' }}>{k.sub}</span>
-                            {k.delta != null && (
-                              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, background: good ? '#E1F5EE' : '#FBEAEA', color: good ? '#0F6E56' : '#C62828' }}>
-                                {k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                <div className="kpi-lbl">{label}</div>
+                <div className="kpi-val">{val}</div>
+                <div className="kpi-sub">{sub}
+                  {delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{delta > 0 ? '↑' : '↓'}{Math.abs(delta)}%</span>}
+                </div>
+                {viz === 'spark' && dailyData?.length > 0 && (
+                  <SparkCanvas data={dailyData} color={color} type="line" />
+                )}
+                {viz === 'bars' && dailyData?.length > 0 && (
+                  <SparkCanvas data={dailyData} color={color} type="bar" />
+                )}
+                {viz === 'donut' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                    <svg width="52" height="52" viewBox="0 0 52 52">
+                      <circle cx="26" cy="26" r="20" fill="none" stroke="#f4f4f5" strokeWidth="6"/>
+                      <circle cx="26" cy="26" r="20" fill="none" stroke={color} strokeWidth="6"
+                        strokeDasharray="100.5 125.6" transform="rotate(-90 26 26)" strokeLinecap="round"/>
+                      <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="#18181b">80%</text>
+                    </svg>
+                    <div>
+                      <div style={{ fontSize: 10, color: '#a1a1aa', fontFamily: 'Inter, sans-serif' }}>del presupuesto</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#18181b' }}>{val} / $480K</div>
+                    </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 0', borderTop: '.5px solid rgba(0,0,0,.06)', marginBottom: 12 }}>
+                )}
+              </div>
+            );
+          };
+
+          const SparkCanvas = ({ data, color, type }) => {
+            const canvasRef = React.useRef(null);
+            const chartRef = React.useRef(null);
+            React.useEffect(() => {
+              if (!canvasRef.current || !window.Chart) return;
+              if (chartRef.current) chartRef.current.destroy();
+              const max = Math.max(...data);
+              chartRef.current = new window.Chart(canvasRef.current, {
+                type: type === 'line' ? 'line' : 'bar',
+                data: {
+                  labels: data.map((_, i) => i + 1),
+                  datasets: [{
+                    data,
+                    borderColor: color,
+                    backgroundColor: type === 'line' ? color + '18' : color + '99',
+                    fill: type === 'line',
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderWidth: type === 'line' ? 2 : 0,
+                    borderRadius: type === 'bar' ? 2 : 0,
+                  }]
+                },
+                options: {
+                  responsive: true, maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { x: { display: false }, y: { display: false } }
+                }
+              });
+              return () => { if (chartRef.current) chartRef.current.destroy(); };
+            }, [data, color, type]);
+            return <div className="spark-wrap"><canvas ref={canvasRef} /></div>;
+          };
+
+          const dailyReach = md?.daily?.map(d => parseInt(d.reach || 0)) || [];
+          const dailyClicks = md?.daily?.map(d => parseInt(d.clicks || 0)) || [];
+          const dailySpend = md?.daily?.map(d => parseFloat(d.spend || 0)) || [];
+          const dailyCtr = md?.daily?.map(d => parseFloat(d.ctr || 0)) || [];
+
+          return metaLoading && !md ? <Spinner /> :
+            !c.meta_ad_account_id ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Meta Ads configurada.</div>
+            ) : (
+              <div onClick={() => setOpenMenu(null)}>
+
+                {/* SECTION HEADER META */}
+                <div className="sect-hdr" style={{ marginBottom: 10 }}>
+                  <div className="sect-dot" style={{ background: '#1D9E75' }} />
+                  <span className="sect-title">Meta Ads</span>
+                  {metaLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                </div>
+
+                {/* KPI GRID 4 cols */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
+                  {md ? <>
+                    <KpiCard id="reach" label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} invertDelta={false} color="#1D9E75" defViz="spark" dailyData={dailyReach} />
+                    <KpiCard id="clicks" label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} invertDelta={false} color="#2563eb" defViz="bars" dailyData={dailyClicks} />
+                    <KpiCard id="spend" label="Gasto" val={fm(t.spend)} sub="total USD" delta={dl.spend} invertDelta={true} color="#f59e0b" defViz="donut" dailyData={dailySpend} />
+                    <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={dailyCtr} />
+                  </> : (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#9c9a92' }}>Sin datos para el período.</div>
+                  )}
+                </div>
+
+                {/* SEGUNDA FILA: CPM CPC Frecuencia Impresiones */}
+                {md && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
                     {[
-                      { label: 'Impresiones', val: fmt(t.impressions) },
-                      { label: 'CPM', val: fm(t.cpm) },
-                      { label: 'CPC', val: fm(t.cpc) },
+                      { id: 'cpm', label: 'CPM', val: fm(t.cpm), sub: 'por mil imp.', delta: dl.cpm, inv: true, color: '#f59e0b' },
+                      { id: 'cpc', label: 'CPC', val: fm(t.cpc), sub: 'por clic', delta: dl.cpc, inv: true, color: '#2563eb' },
+                      { id: 'impressions', label: 'Impresiones', val: fmt(t.impressions), sub: 'total', delta: dl.impressions, inv: false, color: '#1D9E75' },
+                      { id: 'frequency', label: 'Frecuencia', val: t.frequency ? t.frequency.toFixed(2) : '—', sub: 'veces/persona', delta: null, inv: false, color: '#a1a1aa' },
                     ].map(k => (
-                      <div key={k.label} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{k.label}</div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18' }}>{k.val}</div>
+                      <div key={k.id} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '12px 14px', position: 'relative' }}>
+                        <div style={{ height: 3, background: k.color + '55', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                        <div className="kpi-lbl">{k.label}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b', letterSpacing: '-.02em' }}>{k.val}</div>
+                        <div className="kpi-sub">{k.sub}
+                          {k.delta != null && (() => { const good = k.inv ? k.delta <= 0 : k.delta >= 0; return <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>; })()}
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ position: 'relative', height: 120 }}>
-                    <canvas ref={ref} role="img" aria-label="Meta Ads diario" />
-                  </div>
-                </> : (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#9c9a92', fontSize: 13 }}>Sin datos para el período.</div>
                 )}
-              </div>
 
-              {/* COLUMNA DERECHA: IG + FB */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* IG + FB */}
+                {(mods.instagram_organico || mods.facebook_organico) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: mods.instagram_organico && mods.facebook_organico ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 10 }}>
 
-                {/* INSTAGRAM */}
-                {mods.instagram_organico && (
-                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 14 }}>📸</span>
+                    {mods.instagram_organico && (
+                      <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                        <div style={{ height: 3, background: '#e1306c', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                        <div className="sect-hdr">
+                          <div className="sect-dot" style={{ background: '#e1306c' }} />
+                          <span className="sect-title">Instagram Orgánico</span>
+                          {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#e1306c', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                        </div>
+                        {ig ? (
+                          <>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                              {[
+                                { label: 'Seguidores', val: fmt(ig.totals?.followers_total) },
+                                { label: 'Alcance', val: fmt(ig.totals?.reach) },
+                                { label: 'Interacciones', val: fmt(ig.totals?.total_interactions) },
+                                { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views) },
+                              ].map(k => (
+                                <div key={k.label}>
+                                  <div className="kpi-lbl">{k.label}</div>
+                                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 18, fontWeight: 700, color: '#18181b', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Distribución de interacciones</div>
+                              <div style={{ display: 'flex', gap: 2, height: 6, borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: fmt(ig.totals?.likes) > 0 ? '55%' : '0', background: '#e1306c' }} />
+                                <div style={{ width: fmt(ig.totals?.comments) > 0 ? '20%' : '0', background: '#f09433' }} />
+                                <div style={{ width: fmt(ig.totals?.shares) > 0 ? '15%' : '0', background: '#cc2366' }} />
+                                <div style={{ flex: 1, background: '#f4f4f5' }} />
+                              </div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#e1306c' }}>● Likes</span>
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#f09433' }}>● Comentarios</span>
+                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#cc2366' }}>● Shares</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : igLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div>
+                          : !c.ig_account_id ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin cuenta configurada</div>
+                          : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos disponibles</div>}
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Instagram</span>
-                      {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#E1306C', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
-                    </div>
-                    {ig ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        {[
-                          { label: 'Seguidores', val: fmt(ig.totals?.followers_total), accent: '#cc2366' },
-                          { label: 'Alcance', val: fmt(ig.totals?.reach), accent: '#E1306C' },
-                          { label: 'Interacciones', val: fmt(ig.totals?.total_interactions), accent: '#f09433' },
-                          { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views), accent: '#dc2743' },
-                        ].map(k => (
-                          <div key={k.label} style={{ borderLeft: '2px solid ' + k.accent, paddingLeft: 10 }}>
-                            <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                    )}
+
+                    {mods.facebook_organico && (
+                      <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                        <div style={{ height: 3, background: '#1877f2', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                        <div className="sect-hdr">
+                          <div className="sect-dot" style={{ background: '#1877f2' }} />
+                          <span className="sect-title">Facebook Orgánico</span>
+                          {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1877f2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                        </div>
+                        {fb ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            {[
+                              { label: 'Fans', val: fmt(fb.page?.fan_count) },
+                              { label: 'Seguidores', val: fmt(fb.page?.followers_count) },
+                              { label: 'Hablando', val: fmt(fb.page?.talking_about_count) },
+                              { label: 'Posts', val: String(fb.posts?.length || 0) },
+                            ].map(k => (
+                              <div key={k.label}>
+                                <div className="kpi-lbl">{k.label}</div>
+                                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b', letterSpacing: '-.02em' }}>{k.val || '—'}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : fbLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div>
+                          : !c.fb_page_id ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin página configurada</div>
+                          : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos disponibles</div>}
                       </div>
-                    ) : igLoading ? (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Cargando...</div>
-                    ) : !c.ig_account_id ? (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin cuenta configurada</div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin datos disponibles</div>
                     )}
                   </div>
                 )}
 
-                {/* FACEBOOK */}
-                {mods.facebook_organico && (
-                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 14 }}>📘</span>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Facebook</span>
-                      {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
-                    </div>
-                    {fb ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        {[
-                          { label: 'Fans', val: fmt(fb.page?.fan_count), accent: '#1877F2' },
-                          { label: 'Seguidores', val: fmt(fb.page?.followers_count), accent: '#185FA5' },
-                          { label: 'Hablando', val: fmt(fb.page?.talking_about_count), accent: '#378ADD' },
-                          { label: 'Posts recientes', val: fmt(fb.posts?.length), accent: '#B5D4F4' },
-                        ].map(k => (
-                          <div key={k.label} style={{ borderLeft: '2px solid ' + k.accent, paddingLeft: 10 }}>
-                            <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : fbLoading ? (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Cargando...</div>
-                    ) : !c.fb_page_id ? (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin página configurada</div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin datos disponibles</div>
-                    )}
+                {/* PERÍODO ANTERIOR */}
+                {md && (
+                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: '#a1a1aa' }}>Período anterior</span>
+                    {[
+                      ['Alcance', fmt(md.totalsPrev?.reach)],
+                      ['Clics', fmt(md.totalsPrev?.clicks)],
+                      ['Gasto', fm(md.totalsPrev?.spend)],
+                      ['CPM', fm(md.totalsPrev?.cpm)],
+                      ['CPC', fm(md.totalsPrev?.cpc)],
+                      ['CTR', fp(md.totalsPrev?.ctr)],
+                    ].map(([l, v]) => (
+                      <span key={l} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#71717a' }}>
+                        {l} <strong style={{ color: '#18181b', fontWeight: 600 }}>{v}</strong>
+                      </span>
+                    ))}
                   </div>
                 )}
 
               </div>
-            </div>
+            );
+        })()}
 
-            {/* PERÍODO ANTERIOR */}
-            {md && (
-              <div style={{ background: '#f8f7f4', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: '#6b6a65' }}>
-                <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: '#9c9a92' }}>Período anterior</span>
-                <span>Alcance {fmt(md.totalsPrev?.reach)}</span>
-                <span>Clics {fmt(md.totalsPrev?.clicks)}</span>
-                <span>Gasto {fm(md.totalsPrev?.spend)}</span>
-                <span>CPM {fm(md.totalsPrev?.cpm)}</span>
-                <span>CPC {fm(md.totalsPrev?.cpc)}</span>
-                <span>CTR {fp(md.totalsPrev?.ctr)}</span>
-              </div>
-            )}
-          </>
-        )}
- 
-        {/* TAB: RENDIMIENTO */}
+
+                {/* TAB: RENDIMIENTO */}
         {activeTab === 'rendimiento' && (
           metaLoading ? <Spinner /> :
           !md ? (
