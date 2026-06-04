@@ -327,32 +327,32 @@ export default function ClientePage() {
           ) : <>
 
             {/* FILA 1: Meta Ads grande + IG/FB apilados */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 10, marginBottom: 10 }}>
 
-              {/* META ADS CARD oscura */}
-              <div style={{ background: '#111110', borderRadius: 16, padding: '1.25rem 1.5rem' }}>
+              {/* META ADS CARD */}
+              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.25rem 1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75' }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em' }}>Meta Ads</span>
-                  {metaLoading && <div style={{ width: 14, height: 14, border: '2px solid #333', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Meta Ads</span>
+                  {metaLoading && <div style={{ width: 14, height: 14, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
                 </div>
                 {md ? <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                     {[
-                      { label: 'Alcance', val: fmt(t.reach), sub: 'personas', delta: dl.reach, inv: false },
-                      { label: 'Clics', val: fmt(t.clicks), sub: 'en anuncios', delta: dl.clicks, inv: false },
-                      { label: 'Gasto', val: fm(t.spend), sub: 'total USD', delta: dl.spend, inv: true },
-                      { label: 'CTR', val: fp(t.ctr), sub: 'click rate', delta: dl.ctr, inv: false },
+                      { label: 'Alcance', val: fmt(t.reach), sub: 'personas', delta: dl.reach, inv: false, accent: '#1D9E75' },
+                      { label: 'Clics', val: fmt(t.clicks), sub: 'en anuncios', delta: dl.clicks, inv: false, accent: '#185FA5' },
+                      { label: 'Gasto', val: fm(t.spend), sub: 'total USD', delta: dl.spend, inv: true, accent: '#EF9F27' },
+                      { label: 'CTR', val: fp(t.ctr), sub: 'click rate', delta: dl.ctr, inv: false, accent: '#7F77DD' },
                     ].map(k => {
                       const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
                       return (
-                        <div key={k.label} style={{ borderLeft: '2px solid ' + (good === true ? '#1D9E75' : good === false ? '#E53935' : '#333'), paddingLeft: 12 }}>
-                          <div style={{ fontSize: 10, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
-                          <div style={{ fontSize: 26, fontWeight: 600, color: '#e8e6e0', letterSpacing: '-.02em' }}>{k.val}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                            <span style={{ fontSize: 11, color: '#6b6a65' }}>{k.sub}</span>
+                        <div key={k.label} style={{ borderLeft: '3px solid ' + k.accent, paddingLeft: 12 }}>
+                          <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
+                          <div style={{ fontSize: 28, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.02em', lineHeight: 1.1 }}>{k.val}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                            <span style={{ fontSize: 11, color: '#9c9a92' }}>{k.sub}</span>
                             {k.delta != null && (
-                              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, background: good ? 'rgba(29,158,117,0.15)' : 'rgba(229,57,53,0.15)', color: good ? '#1D9E75' : '#E53935' }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, background: good ? '#E1F5EE' : '#FBEAEA', color: good ? '#0F6E56' : '#C62828' }}>
                                 {k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%
                               </span>
                             )}
@@ -361,24 +361,23 @@ export default function ClientePage() {
                       );
                     })}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 0', borderTop: '.5px solid #222' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 0', borderTop: '.5px solid rgba(0,0,0,.06)', marginBottom: 12 }}>
                     {[
                       { label: 'Impresiones', val: fmt(t.impressions) },
                       { label: 'CPM', val: fm(t.cpm) },
                       { label: 'CPC', val: fm(t.cpc) },
                     ].map(k => (
                       <div key={k.label} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{k.label}</div>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: '#9c9a92' }}>{k.val}</div>
+                        <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{k.label}</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18' }}>{k.val}</div>
                       </div>
                     ))}
                   </div>
-                  {/* Gráfico de línea */}
-                  <div style={{ marginTop: 12, position: 'relative', height: 130 }}>
+                  <div style={{ position: 'relative', height: 120 }}>
                     <canvas ref={ref} role="img" aria-label="Meta Ads diario" />
                   </div>
                 </> : (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#6b6a65', fontSize: 13 }}>Sin datos para el período.</div>
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#9c9a92', fontSize: 13 }}>Sin datos para el período.</div>
                 )}
               </div>
 
@@ -387,64 +386,68 @@ export default function ClientePage() {
 
                 {/* INSTAGRAM */}
                 {mods.instagram_organico && (
-                  <div style={{ background: '#1a0a12', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
+                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E1306C' }} />
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6b3a4a', textTransform: 'uppercase', letterSpacing: '.06em' }}>Instagram</span>
-                      {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #3a1a22', borderTopColor: '#E1306C', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 14 }}>📸</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Instagram</span>
+                      {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#E1306C', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
                     </div>
                     {ig ? (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         {[
-                          { label: 'Seguidores', val: fmt(ig.totals?.followers_total) },
-                          { label: 'Alcance', val: fmt(ig.totals?.reach) },
-                          { label: 'Interacciones', val: fmt(ig.totals?.total_interactions) },
-                          { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views) },
+                          { label: 'Seguidores', val: fmt(ig.totals?.followers_total), accent: '#cc2366' },
+                          { label: 'Alcance', val: fmt(ig.totals?.reach), accent: '#E1306C' },
+                          { label: 'Interacciones', val: fmt(ig.totals?.total_interactions), accent: '#f09433' },
+                          { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views), accent: '#dc2743' },
                         ].map(k => (
-                          <div key={k.label}>
-                            <div style={{ fontSize: 10, color: '#6b3a4a', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
-                            <div style={{ fontSize: 20, fontWeight: 600, color: '#f0d0da', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                          <div key={k.label} style={{ borderLeft: '2px solid ' + k.accent, paddingLeft: 10 }}>
+                            <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
                           </div>
                         ))}
                       </div>
                     ) : igLoading ? (
-                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Cargando...</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Cargando...</div>
                     ) : !c.ig_account_id ? (
-                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Sin cuenta configurada</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin cuenta configurada</div>
                     ) : (
-                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Sin datos disponibles</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin datos disponibles</div>
                     )}
                   </div>
                 )}
 
                 {/* FACEBOOK */}
                 {mods.facebook_organico && (
-                  <div style={{ background: '#0a1020', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
+                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1877F2' }} />
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#2a3a5a', textTransform: 'uppercase', letterSpacing: '.06em' }}>Facebook</span>
-                      {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #1a2a40', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 14 }}>📘</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em' }}>Facebook</span>
+                      {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
                     </div>
                     {fb ? (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         {[
-                          { label: 'Fans', val: fmt(fb.page?.fan_count) },
-                          { label: 'Seguidores', val: fmt(fb.page?.followers_count) },
-                          { label: 'Hablando', val: fmt(fb.page?.talking_about_count) },
-                          { label: 'Posts', val: fmt(fb.posts?.length) },
+                          { label: 'Fans', val: fmt(fb.page?.fan_count), accent: '#1877F2' },
+                          { label: 'Seguidores', val: fmt(fb.page?.followers_count), accent: '#185FA5' },
+                          { label: 'Hablando', val: fmt(fb.page?.talking_about_count), accent: '#378ADD' },
+                          { label: 'Posts recientes', val: fmt(fb.posts?.length), accent: '#B5D4F4' },
                         ].map(k => (
-                          <div key={k.label}>
-                            <div style={{ fontSize: 10, color: '#2a3a5a', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
-                            <div style={{ fontSize: 20, fontWeight: 600, color: '#b0c8f0', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                          <div key={k.label} style={{ borderLeft: '2px solid ' + k.accent, paddingLeft: 10 }}>
+                            <div style={{ fontSize: 10, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a18', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
                           </div>
                         ))}
                       </div>
                     ) : fbLoading ? (
-                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Cargando...</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Cargando...</div>
                     ) : !c.fb_page_id ? (
-                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Sin página configurada</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin página configurada</div>
                     ) : (
-                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Sin datos disponibles</div>
+                      <div style={{ fontSize: 12, color: '#9c9a92' }}>Sin datos disponibles</div>
                     )}
                   </div>
                 )}
@@ -452,7 +455,7 @@ export default function ClientePage() {
               </div>
             </div>
 
-            {/* FILA 2: Métricas secundarias + período anterior */}
+            {/* PERÍODO ANTERIOR */}
             {md && (
               <div style={{ background: '#f8f7f4', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: '#6b6a65' }}>
                 <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: '#9c9a92' }}>Período anterior</span>
