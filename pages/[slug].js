@@ -585,190 +585,245 @@ export default function ClientePage() {
         })()}
 
 
-                {/* TAB: RENDIMIENTO */}
+                       {/* TAB: RENDIMIENTO */}
         {activeTab === 'rendimiento' && (
           metaLoading ? <Spinner /> :
-          !md ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos disponibles.</div>
-          ) : <>
-            <div style={g4}>
-              <KPI label="CTR" val={fp(t.ctr)} sub="click-through rate" delta={dl.ctr} />
-              <KPI label="CPM" val={fm(t.cpm)} sub="costo por mil" delta={dl.cpm} invertDelta />
-              <KPI label="CPC" val={fm(t.cpc)} sub="costo por clic" delta={dl.cpc} invertDelta />
-              <KPI label="Frecuencia" val={t.frequency ? t.frequency.toFixed(2) : '—'} sub="veces/persona" />
+          !md ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos disponibles.</div> :
+          <>
+            <div className="sect-hdr" style={{ marginBottom: 10 }}>
+              <div className="sect-dot" style={{ background: '#1D9E75' }} />
+              <span className="sect-title">Rendimiento · eficiencia de la inversión</span>
             </div>
-            <div style={card}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>CTR y CPM diario</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
+              {[
+                { label: 'CTR', val: fp(t.ctr), sub: 'click-through rate', delta: dl.ctr, inv: false, color: '#7c3aed' },
+                { label: 'CPM', val: fm(t.cpm), sub: 'costo por mil imp.', delta: dl.cpm, inv: true, color: '#f59e0b' },
+                { label: 'CPC', val: fm(t.cpc), sub: 'costo por clic', delta: dl.cpc, inv: true, color: '#2563eb' },
+                { label: 'Frecuencia', val: t.frequency ? t.frequency.toFixed(2) : '—', sub: 'veces/persona', delta: null, inv: false, color: '#a1a1aa' },
+              ].map(k => {
+                const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
+                return (
+                  <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                    <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                    <div className="kpi-lbl">{k.label}</div>
+                    <div className="kpi-val">{k.val}</div>
+                    <div className="kpi-sub">{k.sub}
+                      {k.delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '1rem 1.1rem', marginBottom: 10 }}>
+              <div className="kpi-lbl" style={{ marginBottom: 12 }}>CTR y CPM diario</div>
               <div style={{ position: 'relative', height: 200 }}>
                 <canvas ref={ref} role="img" aria-label="Rendimiento" />
               </div>
             </div>
-            <div style={{ padding: '12px 16px', background: '#f8f7f4', borderRadius: 10, fontSize: 12, color: '#6b6a65', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 600, color: '#9c9a92', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>Período anterior</span>
-              <span>CPM {fm(md.totalsPrev?.cpm)}</span>
-              <span>CPC {fm(md.totalsPrev?.cpc)}</span>
-              <span>CTR {fp(md.totalsPrev?.ctr)}</span>
-              <span>Alcance {fmt(md.totalsPrev?.reach)}</span>
-              <span>Clics {fmt(md.totalsPrev?.clicks)}</span>
-              <span>Gasto {fm(md.totalsPrev?.spend)}</span>
+            <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: '#a1a1aa' }}>Período anterior</span>
+              {[['CPM', fm(md.totalsPrev?.cpm)], ['CPC', fm(md.totalsPrev?.cpc)], ['CTR', fp(md.totalsPrev?.ctr)], ['Alcance', fmt(md.totalsPrev?.reach)], ['Clics', fmt(md.totalsPrev?.clicks)], ['Gasto', fm(md.totalsPrev?.spend)]].map(([l, v]) => (
+                <span key={l} style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#71717a' }}>{l} <strong style={{ color: '#18181b', fontWeight: 600 }}>{v}</strong></span>
+              ))}
             </div>
           </>
         )}
- 
+
         {/* TAB: RESULTADOS */}
         {activeTab === 'resultados' && (
           metaLoading ? <Spinner /> :
-          !md ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos disponibles.</div>
-          ) : (
-            <div style={g4}>
-              <KPI label="Mensajes" val={fmt(t.messages) || '0'} sub="conversaciones" delta={dl.messages} />
-              <KPI label="Leads" val={fmt(t.leads) || '0'} sub="formularios" delta={dl.leads} />
-              <KPI label="Compras" val={fmt(t.purchases) || '0'} sub="transacciones" delta={dl.purchases} />
-              <KPI label="ROAS" val={t.roas ? t.roas.toFixed(2) + 'x' : '—'} sub="retorno en ads" />
+          !md ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos disponibles.</div> :
+          <>
+            <div className="sect-hdr" style={{ marginBottom: 10 }}>
+              <div className="sect-dot" style={{ background: '#1D9E75' }} />
+              <span className="sect-title">Resultados · conversiones del período</span>
             </div>
-          )
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
+              {[
+                { label: 'Mensajes', val: fmt(t.messages) || '0', sub: 'conversaciones', delta: dl.messages, inv: false, color: '#1D9E75' },
+                { label: 'Leads', val: fmt(t.leads) || '0', sub: 'formularios', delta: dl.leads, inv: false, color: '#2563eb' },
+                { label: 'Compras', val: fmt(t.purchases) || '0', sub: 'transacciones', delta: dl.purchases, inv: false, color: '#7c3aed' },
+                { label: 'ROAS', val: t.roas ? t.roas.toFixed(2) + 'x' : '—', sub: 'retorno en ads', delta: null, inv: false, color: '#f59e0b' },
+              ].map(k => {
+                const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
+                return (
+                  <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                    <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                    <div className="kpi-lbl">{k.label}</div>
+                    <div className="kpi-val">{k.val}</div>
+                    <div className="kpi-sub">{k.sub}
+                      {k.delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
- 
+
         {/* TAB: CAMPAÑAS */}
         {activeTab === 'campanas' && (
           metaLoading ? <Spinner /> :
-          <div style={card}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>
-              Campañas · {camps.length} activas
+          <>
+            <div className="sect-hdr" style={{ marginBottom: 10 }}>
+              <div className="sect-dot" style={{ background: '#1D9E75' }} />
+              <span className="sect-title">Campañas · {camps.length} en el período</span>
             </div>
-            {camps.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#9c9a92', fontSize: 13 }}>Sin campañas en el período.</div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+              {camps.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin campañas en el período.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
                   <thead>
-                    <tr>
-                      {['Campaña', 'Imp.', 'Clics', 'CTR', 'CPM', 'Gasto', 'Result.'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 600, color: '#9c9a92', borderBottom: '.5px solid rgba(0,0,0,.09)', textTransform: 'uppercase' }}>{h}</th>
+                    <tr style={{ background: '#f9f9f8' }}>
+                      {['Campaña', 'Impresiones', 'Clics', 'CTR', 'CPM', 'Gasto', 'Resultados'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {camps.map((camp, i) => {
-                      const res = (camp.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
-                      return (
-                        <tr key={i}>
-                          <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '.5px solid rgba(0,0,0,.09)' }}>{camp.campaign_name}</td>
-                          {[fmt(parseInt(camp.impressions || 0)), fmt(parseInt(camp.clicks || 0)), fp(parseFloat(camp.ctr || 0)), fm(parseFloat(camp.cpm || 0))].map((v, j) => (
-                            <td key={j} style={{ padding: '10px 12px', borderBottom: '.5px solid rgba(0,0,0,.09)' }}>{v}</td>
-                          ))}
-                          <td style={{ padding: '10px 12px', fontWeight: 600, borderBottom: '.5px solid rgba(0,0,0,.09)' }}>{fm(parseFloat(camp.spend || 0))}</td>
-                          <td style={{ padding: '10px 12px', borderBottom: '.5px solid rgba(0,0,0,.09)' }}>
-                            {res > 0 ? <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#E1F5EE', color: '#0F6E56', fontWeight: 600 }}>{res}</span> : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {(() => {
+                      const maxSpend = Math.max(...camps.map(c => parseFloat(c.spend || 0)));
+                      return camps.map((camp, i) => {
+                        const res = (camp.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
+                        const spendPct = maxSpend > 0 ? (parseFloat(camp.spend || 0) / maxSpend) * 100 : 0;
+                        return (
+                          <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 500, fontSize: 13, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{camp.campaign_name}</td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.impressions || 0))}</td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.clicks || 0))}</td>
+                            <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(camp.ctr || 0))}</span></td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fm(parseFloat(camp.cpm || 0))}</td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{fm(parseFloat(camp.spend || 0))}</div>
+                              <div style={{ height: 3, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: spendPct + '%', background: '#1D9E75', borderRadius: 2 }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              {res > 0 ? <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res}</span> : <span style={{ color: '#a1a1aa' }}>—</span>}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
- 
+
         {/* TAB: FACEBOOK ORGÁNICO */}
         {activeTab === 'facebook' && (
           fbLoading ? <Spinner /> :
-          !c.fb_page_id ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin Page ID de Facebook configurado para este cliente.</div>
-          ) : !fb ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos de Facebook orgánico.</div>
-          ) : <>
-            {/* Header de página */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 16px', background: '#fff', borderRadius: 12, border: '.5px solid rgba(0,0,0,.09)' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>📘</div>
+          !c.fb_page_id ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin Page ID configurado.</div> :
+          !fb ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos de Facebook orgánico.</div> :
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, fontWeight: 700 }}>f</div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{fb.page?.name}</div>
-                <div style={{ fontSize: 12, color: '#9c9a92' }}>{fmt(fb.page?.fan_count)} seguidores · {fb.page?.talking_about_count || 0} hablando de esto</div>
+                <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 700, fontSize: 15, color: '#18181b' }}>{fb.page?.name}</div>
+                <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#a1a1aa' }}>{fmt(fb.page?.fan_count)} fans · {fb.page?.talking_about_count || 0} hablando</div>
               </div>
             </div>
-            {/* KPIs */}
-            <div style={g4}>
-              <KPI label="Fans" val={fmt(fb.page?.fan_count)} sub="total" />
-              <KPI label="Seguidores" val={fmt(fb.page?.followers_count)} sub="total" />
-              <KPI label="Hablando" val={fmt(fb.page?.talking_about_count)} sub="esta semana" />
-              <KPI label="Interacciones" val={fmt(fb.totals?.page_total_actions) || '—'} sub="período" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 12 }}>
+              {[
+                { label: 'Fans', val: fmt(fb.page?.fan_count), color: '#1877F2' },
+                { label: 'Seguidores', val: fmt(fb.page?.followers_count), color: '#185FA5' },
+                { label: 'Hablando', val: fmt(fb.page?.talking_about_count), color: '#378ADD' },
+                { label: 'Interacciones', val: fmt(fb.totals?.page_total_actions) || '—', color: '#1D9E75' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val}</div>
+                </div>
+              ))}
             </div>
-            {/* Posts recientes */}
-            {fb.posts?.length > 0 && <>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Posts recientes</div>
+            {fb.posts?.length > 0 ? <>
+              <div className="kpi-lbl" style={{ marginBottom: 10 }}>Posts recientes</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
                 {fb.posts.slice(0, 9).map((p, i) => (
-                  <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 10, overflow: 'hidden' }}>
-                    {p.full_picture && <img src={p.full_picture} style={{ width: '100%', height: 110, objectFit: 'cover' }} alt="post" onError={e => { e.target.style.display = 'none'; }} />}
-                    <div style={{ padding: 10 }}>
-                      <div style={{ fontSize: 11, color: '#9c9a92', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.message?.slice(0, 60) || '(sin texto)'}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 6, color: '#9c9a92' }}>
-                        <span>❤️ {p.likes?.summary?.total_count || 0}</span>
+                  <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+                    {p.full_picture && <img src={p.full_picture} style={{ width: '100%', height: 130, objectFit: 'cover' }} alt="post" onError={e => { e.target.style.display = 'none'; }} />}
+                    <div style={{ padding: '10px 12px' }}>
+                      <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 8 }}>{p.message?.slice(0, 60) || '(sin texto)'}</div>
+                      <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'Inter,sans-serif', color: '#a1a1aa' }}>
+                        <span>❤ {p.likes?.summary?.total_count || 0}</span>
                         <span>💬 {p.comments?.summary?.total_count || 0}</span>
-                        <span>🔁 {p.shares?.count || 0}</span>
+                        <span>↗ {p.shares?.count || 0}</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </>}
-            {!fb.posts?.length && (
-              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#9c9a92', fontSize: 12, background: '#fff', borderRadius: 10, border: '.5px solid rgba(0,0,0,.09)' }}>
-                Sin posts en el período seleccionado
-              </div>
-            )}
+            </> : <div style={{ textAlign: 'center', padding: '2rem', color: '#a1a1aa', fontSize: 12, background: '#fff', borderRadius: 12, border: '.5px solid rgba(0,0,0,.08)' }}>Sin posts en el período</div>}
           </>
         )}
- 
+
         {/* TAB: INSTAGRAM ORGÁNICO */}
         {activeTab === 'instagram' && (
           igLoading ? <Spinner /> :
-          !c.ig_account_id ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Instagram configurada para este cliente.</div>
-          ) : !ig ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos de Instagram.</div>
-          ) : <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 16px', background: '#fff', borderRadius: 12, border: '.5px solid rgba(0,0,0,.09)' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20 }}>📸</div>
+          !c.ig_account_id ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin cuenta de Instagram configurada.</div> :
+          !ig ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos de Instagram.</div> :
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,#f09433,#dc2743,#cc2366)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14, fontWeight: 700 }}>IG</div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>@{ig.account?.username || ig.account?.name}</div>
-                <div style={{ fontSize: 12, color: '#9c9a92' }}>{fmt(ig.totals?.followers_total)} seguidores</div>
+                <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 700, fontSize: 15, color: '#18181b' }}>@{ig.account?.username || ig.account?.name}</div>
+                <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#a1a1aa' }}>{fmt(ig.totals?.followers_total)} seguidores</div>
               </div>
             </div>
-            <div style={g4}>
-              <KPI label="Seguidores" val={fmt(ig.totals?.followers_total)} sub="total" />
-              <KPI label="Alcance" val={fmt(ig.totals?.reach)} sub="período" />
-              <KPI label="Impresiones" val={fmt(ig.totals?.impressions)} sub="total" />
-              <KPI label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="período" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
+              {[
+                { label: 'Seguidores', val: fmt(ig.totals?.followers_total), color: '#cc2366' },
+                { label: 'Alcance', val: fmt(ig.totals?.reach), color: '#e1306c' },
+                { label: 'Interacciones', val: fmt(ig.totals?.total_interactions), color: '#f09433' },
+                { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views), color: '#dc2743' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 12 }}>
+              {[
+                { label: 'Likes', val: fmt(ig.totals?.likes), color: '#e1306c' },
+                { label: 'Comentarios', val: fmt(ig.totals?.comments), color: '#f09433' },
+                { label: 'Shares', val: fmt(ig.totals?.shares), color: '#cc2366' },
+                { label: 'Guardados', val: fmt(ig.totals?.saves), color: '#dc2743' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '12px 14px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color + '55', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b', letterSpacing: '-.02em' }}>{k.val || '0'}</div>
+                </div>
+              ))}
             </div>
             {ig.posts?.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
-                {ig.posts.slice(0, 9).map((p, i) => {
-                  const ins = p.insights?.data || [];
-                  const gm = name => { const m = ins.find(x => x.name === name); return m?.values?.[0]?.value || 0; };
-                  return (
-                    <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.09)', borderRadius: 10, overflow: 'hidden' }}>
-                      {(p.media_url || p.thumbnail_url) && (
-                        <img src={p.thumbnail_url || p.media_url} style={{ width: '100%', height: 110, objectFit: 'cover', background: '#f8f7f4' }} alt="post" onError={e => { e.target.style.display = 'none'; }} />
-                      )}
-                      <div style={{ padding: 10 }}>
-                        <div style={{ fontSize: 11, color: '#9c9a92', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.caption?.slice(0, 50) || '(sin caption)'}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 6, color: '#9c9a92' }}>
-                          <span>❤️ {fmt(gm('likes'))}</span>
-                          <span>💬 {fmt(gm('comments'))}</span>
-                          <span>👁 {fmt(gm('reach'))}</span>
-                        </div>
+                {ig.posts.slice(0, 9).map((p, i) => (
+                  <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+                    {(p.media_url || p.thumbnail_url) && (
+                      <img src={p.thumbnail_url || p.media_url} style={{ width: '100%', height: 130, objectFit: 'cover' }} alt="post" onError={e => { e.target.style.display = 'none'; }} />
+                    )}
+                    <div style={{ padding: '10px 12px' }}>
+                      <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 8 }}>{p.caption?.slice(0, 50) || '(sin caption)'}</div>
+                      <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'Inter,sans-serif', color: '#a1a1aa' }}>
+                        <span>❤ {p.like_count || 0}</span>
+                        <span>💬 {p.comments_count || 0}</span>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </>
         )}
- 
+
         {/* FOOTER */}
         <div style={{ textAlign: 'center', padding: '2rem', fontSize: 11, color: '#9c9a92', borderTop: '.5px solid rgba(0,0,0,.09)', marginTop: '2rem' }}>
           Reporte generado por <strong>pintamkt</strong> · {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
