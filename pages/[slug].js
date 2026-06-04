@@ -67,6 +67,86 @@ function KPI({ label, val, sub, delta, invertDelta }) {
   );
 }
  
+function SparkCanvas({ data, color, type }) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current || !window.Chart || !data?.length) return;
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new window.Chart(canvasRef.current, {
+      type: type === 'line' ? 'line' : 'bar',
+      data: {
+        labels: data.map((_, i) => i + 1),
+        datasets: [{
+          data,
+          borderColor: color,
+          backgroundColor: type === 'line' ? color + '18' : color + '99',
+          fill: type === 'line',
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: type === 'line' ? 2 : 0,
+          borderRadius: type === 'bar' ? 2 : 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { display: false }, y: { display: false } }
+      }
+    });
+    return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+  }, [data, color, type]);
+  return <div style={{ height: 48, marginTop: 10, position: 'relative' }}><canvas ref={canvasRef} /></div>;
+}
+
+function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, dailyData, vizTypes, setViz, openMenu, setOpenMenu }) {
+  const viz = vizTypes[id] || defViz;
+  const good = delta == null ? null : (invertDelta ? delta <= 0 : delta >= 0);
+  const isOpen = openMenu === id;
+  const vizOptions = [
+    { key: 'spark', icon: '〰', label: 'Línea' },
+    { key: 'bars', icon: '▐', label: 'Barras' },
+    ...(id === 'spend' ? [{ key: 'donut', icon: '◔', label: 'Donut' }] : []),
+    { key: 'number', icon: '#', label: 'Solo número' },
+  ];
+  return (
+    <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative', overflow: 'visible' }}>
+      <div style={{ height: 3, background: color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+      <button className="kpi-menu-btn" onClick={e => { e.stopPropagation(); setOpenMenu(isOpen ? null : id); }}>···</button>
+      <div className={'kpi-dropdown' + (isOpen ? ' open' : '')}>
+        <div className="kpi-dd-title">Visualización</div>
+        {vizOptions.map(o => (
+          <div key={o.key} className={'kpi-dd-item' + (viz === o.key ? ' active' : '')} onClick={() => setViz(id, o.key)}>
+            <span style={{ fontSize: 12, width: 16, textAlign: 'center', color: viz === o.key ? color : '#a1a1aa' }}>{o.icon}</span>
+            {o.label}
+          </div>
+        ))}
+      </div>
+      <div className="kpi-lbl">{label}</div>
+      <div className="kpi-val">{val}</div>
+      <div className="kpi-sub">{sub}
+        {delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{delta > 0 ? '↑' : '↓'}{Math.abs(delta)}%</span>}
+      </div>
+      {viz === 'spark' && dailyData?.length > 0 && <SparkCanvas data={dailyData} color={color} type="line" />}
+      {viz === 'bars' && dailyData?.length > 0 && <SparkCanvas data={dailyData} color={color} type="bar" />}
+      {viz === 'donut' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="20" fill="none" stroke="#f4f4f5" strokeWidth="6"/>
+            <circle cx="26" cy="26" r="20" fill="none" stroke={color} strokeWidth="6"
+              strokeDasharray="100.5 125.6" transform="rotate(-90 26 26)" strokeLinecap="round"/>
+            <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="#18181b">80%</text>
+          </svg>
+          <div>
+            <div style={{ fontSize: 10, color: '#a1a1aa', fontFamily: 'Inter, sans-serif' }}>del presupuesto</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#18181b' }}>{val} / $480K</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClientePage() {
   const { slug } = useRouter().query;
   const [c, setC] = useState(null);
@@ -91,7 +171,6 @@ export default function ClientePage() {
     try { localStorage.setItem('pintamkt_viz_' + window.location.pathname, JSON.stringify(next)); } catch {}
     setOpenMenu(null);
   };
-  const getViz = (metric, def) => vizTypes[metric] || def;
   const ref = useRef(null);
   const ci = useRef(null);
  
@@ -353,92 +432,6 @@ export default function ClientePage() {
  
         {/* TAB: RESUMEN */}
         {activeTab === 'resumen' && (() => {
-          const KpiCard = ({ id, label, val, sub, delta, invertDelta, color, defViz, dailyData }) => {
-            const viz = getViz(id, defViz);
-            const good = delta == null ? null : (invertDelta ? delta <= 0 : delta >= 0);
-            const isOpen = openMenu === id;
-            const vizOptions = [
-              { key: 'spark', icon: '〰', label: 'Línea' },
-              { key: 'bars', icon: '▐', label: 'Barras' },
-              { key: 'donut', icon: '◔', label: 'Donut' },
-              { key: 'number', icon: '#', label: 'Solo número' },
-            ].filter(o => id !== 'spend' ? o.key !== 'donut' : true);
-
-            return (
-              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative', overflow: 'visible' }}>
-                <div style={{ height: 3, background: color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                <button className="kpi-menu-btn" onClick={e => { e.stopPropagation(); setOpenMenu(isOpen ? null : id); }}>···</button>
-                <div className={'kpi-dropdown' + (isOpen ? ' open' : '')}>
-                  <div className="kpi-dd-title">Visualización</div>
-                  {vizOptions.map(o => (
-                    <div key={o.key} className={'kpi-dd-item' + (viz === o.key ? ' active' : '')} onClick={() => setViz(id, o.key)}>
-                      <span style={{ fontSize: 12, width: 16, textAlign: 'center', color: viz === o.key ? color : '#a1a1aa' }}>{o.icon}</span>
-                      {o.label}
-                    </div>
-                  ))}
-                </div>
-                <div className="kpi-lbl">{label}</div>
-                <div className="kpi-val">{val}</div>
-                <div className="kpi-sub">{sub}
-                  {delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{delta > 0 ? '↑' : '↓'}{Math.abs(delta)}%</span>}
-                </div>
-                {viz === 'spark' && dailyData?.length > 0 && (
-                  <SparkCanvas data={dailyData} color={color} type="line" />
-                )}
-                {viz === 'bars' && dailyData?.length > 0 && (
-                  <SparkCanvas data={dailyData} color={color} type="bar" />
-                )}
-                {viz === 'donut' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
-                    <svg width="52" height="52" viewBox="0 0 52 52">
-                      <circle cx="26" cy="26" r="20" fill="none" stroke="#f4f4f5" strokeWidth="6"/>
-                      <circle cx="26" cy="26" r="20" fill="none" stroke={color} strokeWidth="6"
-                        strokeDasharray="100.5 125.6" transform="rotate(-90 26 26)" strokeLinecap="round"/>
-                      <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="#18181b">80%</text>
-                    </svg>
-                    <div>
-                      <div style={{ fontSize: 10, color: '#a1a1aa', fontFamily: 'Inter, sans-serif' }}>del presupuesto</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#18181b' }}>{val} / $480K</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          };
-
-          const SparkCanvas = ({ data, color, type }) => {
-            const canvasRef = React.useRef(null);
-            const chartRef = React.useRef(null);
-            React.useEffect(() => {
-              if (!canvasRef.current || !window.Chart) return;
-              if (chartRef.current) chartRef.current.destroy();
-              const max = Math.max(...data);
-              chartRef.current = new window.Chart(canvasRef.current, {
-                type: type === 'line' ? 'line' : 'bar',
-                data: {
-                  labels: data.map((_, i) => i + 1),
-                  datasets: [{
-                    data,
-                    borderColor: color,
-                    backgroundColor: type === 'line' ? color + '18' : color + '99',
-                    fill: type === 'line',
-                    tension: 0.4,
-                    pointRadius: 0,
-                    borderWidth: type === 'line' ? 2 : 0,
-                    borderRadius: type === 'bar' ? 2 : 0,
-                  }]
-                },
-                options: {
-                  responsive: true, maintainAspectRatio: false,
-                  plugins: { legend: { display: false } },
-                  scales: { x: { display: false }, y: { display: false } }
-                }
-              });
-              return () => { if (chartRef.current) chartRef.current.destroy(); };
-            }, [data, color, type]);
-            return <div className="spark-wrap"><canvas ref={canvasRef} /></div>;
-          };
-
           const dailyReach = md?.daily?.map(d => parseInt(d.reach || 0)) || [];
           const dailyClicks = md?.daily?.map(d => parseInt(d.clicks || 0)) || [];
           const dailySpend = md?.daily?.map(d => parseFloat(d.spend || 0)) || [];
@@ -460,10 +453,10 @@ export default function ClientePage() {
                 {/* KPI GRID 4 cols */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
                   {md ? <>
-                    <KpiCard id="reach" label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} invertDelta={false} color="#1D9E75" defViz="spark" dailyData={dailyReach} />
-                    <KpiCard id="clicks" label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} invertDelta={false} color="#2563eb" defViz="bars" dailyData={dailyClicks} />
-                    <KpiCard id="spend" label="Gasto" val={fm(t.spend)} sub="total USD" delta={dl.spend} invertDelta={true} color="#f59e0b" defViz="donut" dailyData={dailySpend} />
-                    <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={dailyCtr} />
+                    <KpiCard id="reach" label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} invertDelta={false} color="#1D9E75" defViz="spark" dailyData={dailyReach} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                    <KpiCard id="clicks" label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} invertDelta={false} color="#2563eb" defViz="bars" dailyData={dailyClicks} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                    <KpiCard id="spend" label="Gasto" val={fm(t.spend)} sub="total USD" delta={dl.spend} invertDelta={true} color="#f59e0b" defViz="donut" dailyData={dailySpend} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                    <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={dailyCtr} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
                   </> : (
                     <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#9c9a92' }}>Sin datos para el período.</div>
                   )}
