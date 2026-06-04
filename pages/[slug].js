@@ -147,10 +147,16 @@ export default function ClientePage() {
       if (ci.current) ci.current.destroy();
       const rows = md.daily;
       const lbs = rows.map(d => d.date_start?.slice(5));
+      const isResumen = tab === 'resumen';
       const ds = tab === 'rendimiento'
         ? [
             { label: 'CTR%', data: rows.map(d => parseFloat(d.ctr || 0)), borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.1)', fill: true, tension: 0.3, type: 'line', yAxisID: 'y' },
             { label: 'CPM', data: rows.map(d => parseFloat(d.cpm || 0)), backgroundColor: '#B5D4F4', borderRadius: 3, yAxisID: 'y2' }
+          ]
+        : isResumen
+        ? [
+            { label: 'Clics', data: rows.map(d => parseInt(d.clicks || 0)), borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.15)', fill: true, tension: 0.4, type: 'line', yAxisID: 'y', pointRadius: 0, borderWidth: 2 },
+            { label: 'Gasto', data: rows.map(d => parseFloat(d.spend || 0)), borderColor: '#9FE1CB', backgroundColor: 'rgba(159,225,203,0.1)', fill: true, tension: 0.4, type: 'line', yAxisID: 'y2', pointRadius: 0, borderWidth: 1.5 }
           ]
         : [
             { label: 'Clics', data: rows.map(d => parseInt(d.clicks || 0)), backgroundColor: '#1D9E75', borderRadius: 3, yAxisID: 'y' },
@@ -162,11 +168,24 @@ export default function ClientePage() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10 } } },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-            y: { ticks: { font: { size: 9 } } },
-            y2: { position: 'right', grid: { display: false }, ticks: { font: { size: 9 } } }
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 9 }, color: isResumen ? '#6b6a65' : '#888' },
+              border: { color: isResumen ? '#333' : '#e0e0e0' }
+            },
+            y: {
+              grid: { color: isResumen ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' },
+              ticks: { font: { size: 9 }, color: isResumen ? '#6b6a65' : '#888' },
+              border: { display: false }
+            },
+            y2: {
+              position: 'right',
+              grid: { display: false },
+              ticks: { font: { size: 9 }, color: isResumen ? '#6b6a65' : '#888' },
+              border: { display: false }
+            }
           }
         }
       });
@@ -302,30 +321,149 @@ export default function ClientePage() {
  
         {/* TAB: RESUMEN */}
         {activeTab === 'resumen' && (
-          metaLoading ? <Spinner /> :
+          metaLoading && !md ? <Spinner /> :
           !c.meta_ad_account_id ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Meta Ads configurada para este cliente.</div>
-          ) : !md ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin datos disponibles para el período seleccionado.</div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Meta Ads configurada.</div>
           ) : <>
-            <div style={g4}>
-              <KPI label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} />
-              <KPI label="Impresiones" val={fmt(t.impressions)} sub="total" delta={dl.impressions} />
-              <KPI label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} />
-              <KPI label="Gasto" val={fm(t.spend)} sub="total" delta={dl.spend} invertDelta />
-            </div>
-            <div style={g4}>
-              <KPI label="CPM" val={fm(t.cpm)} sub="por mil imp." delta={dl.cpm} invertDelta />
-              <KPI label="CPC" val={fm(t.cpc)} sub="por clic" delta={dl.cpc} invertDelta />
-              <KPI label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} />
-              <KPI label="Frecuencia" val={t.frequency ? t.frequency.toFixed(2) : '—'} sub="veces/persona" />
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#9c9a92', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>Clics y Gasto diario</div>
-              <div style={{ position: 'relative', height: 200 }}>
-                <canvas ref={ref} role="img" aria-label="Meta Ads diario" />
+
+            {/* FILA 1: Meta Ads grande + IG/FB apilados */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 10, marginBottom: 10 }}>
+
+              {/* META ADS CARD oscura */}
+              <div style={{ background: '#111110', borderRadius: 16, padding: '1.25rem 1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em' }}>Meta Ads</span>
+                  {metaLoading && <div style={{ width: 14, height: 14, border: '2px solid #333', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                </div>
+                {md ? <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                    {[
+                      { label: 'Alcance', val: fmt(t.reach), sub: 'personas', delta: dl.reach, inv: false },
+                      { label: 'Clics', val: fmt(t.clicks), sub: 'en anuncios', delta: dl.clicks, inv: false },
+                      { label: 'Gasto', val: fm(t.spend), sub: 'total USD', delta: dl.spend, inv: true },
+                      { label: 'CTR', val: fp(t.ctr), sub: 'click rate', delta: dl.ctr, inv: false },
+                    ].map(k => {
+                      const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
+                      return (
+                        <div key={k.label} style={{ borderLeft: '2px solid ' + (good === true ? '#1D9E75' : good === false ? '#E53935' : '#333'), paddingLeft: 12 }}>
+                          <div style={{ fontSize: 10, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>{k.label}</div>
+                          <div style={{ fontSize: 26, fontWeight: 600, color: '#e8e6e0', letterSpacing: '-.02em' }}>{k.val}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                            <span style={{ fontSize: 11, color: '#6b6a65' }}>{k.sub}</span>
+                            {k.delta != null && (
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 20, background: good ? 'rgba(29,158,117,0.15)' : 'rgba(229,57,53,0.15)', color: good ? '#1D9E75' : '#E53935' }}>
+                                {k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 0', borderTop: '.5px solid #222' }}>
+                    {[
+                      { label: 'Impresiones', val: fmt(t.impressions) },
+                      { label: 'CPM', val: fm(t.cpm) },
+                      { label: 'CPC', val: fm(t.cpc) },
+                    ].map(k => (
+                      <div key={k.label} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: '#6b6a65', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{k.label}</div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: '#9c9a92' }}>{k.val}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Gráfico de línea */}
+                  <div style={{ marginTop: 12, position: 'relative', height: 130 }}>
+                    <canvas ref={ref} role="img" aria-label="Meta Ads diario" />
+                  </div>
+                </> : (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#6b6a65', fontSize: 13 }}>Sin datos para el período.</div>
+                )}
+              </div>
+
+              {/* COLUMNA DERECHA: IG + FB */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                {/* INSTAGRAM */}
+                {mods.instagram_organico && (
+                  <div style={{ background: '#1a0a12', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E1306C' }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6b3a4a', textTransform: 'uppercase', letterSpacing: '.06em' }}>Instagram</span>
+                      {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #3a1a22', borderTopColor: '#E1306C', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                    </div>
+                    {ig ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {[
+                          { label: 'Seguidores', val: fmt(ig.totals?.followers_total) },
+                          { label: 'Alcance', val: fmt(ig.totals?.reach) },
+                          { label: 'Interacciones', val: fmt(ig.totals?.total_interactions) },
+                          { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views) },
+                        ].map(k => (
+                          <div key={k.label}>
+                            <div style={{ fontSize: 10, color: '#6b3a4a', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
+                            <div style={{ fontSize: 20, fontWeight: 600, color: '#f0d0da', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : igLoading ? (
+                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Cargando...</div>
+                    ) : !c.ig_account_id ? (
+                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Sin cuenta configurada</div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#6b3a4a' }}>Sin datos disponibles</div>
+                    )}
+                  </div>
+                )}
+
+                {/* FACEBOOK */}
+                {mods.facebook_organico && (
+                  <div style={{ background: '#0a1020', borderRadius: 16, padding: '1.1rem 1.25rem', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1877F2' }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#2a3a5a', textTransform: 'uppercase', letterSpacing: '.06em' }}>Facebook</span>
+                      {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #1a2a40', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 'auto' }} />}
+                    </div>
+                    {fb ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {[
+                          { label: 'Fans', val: fmt(fb.page?.fan_count) },
+                          { label: 'Seguidores', val: fmt(fb.page?.followers_count) },
+                          { label: 'Hablando', val: fmt(fb.page?.talking_about_count) },
+                          { label: 'Posts', val: fmt(fb.posts?.length) },
+                        ].map(k => (
+                          <div key={k.label}>
+                            <div style={{ fontSize: 10, color: '#2a3a5a', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{k.label}</div>
+                            <div style={{ fontSize: 20, fontWeight: 600, color: '#b0c8f0', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : fbLoading ? (
+                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Cargando...</div>
+                    ) : !c.fb_page_id ? (
+                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Sin página configurada</div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#2a3a5a' }}>Sin datos disponibles</div>
+                    )}
+                  </div>
+                )}
+
               </div>
             </div>
+
+            {/* FILA 2: Métricas secundarias + período anterior */}
+            {md && (
+              <div style={{ background: '#f8f7f4', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: '#6b6a65' }}>
+                <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: '#9c9a92' }}>Período anterior</span>
+                <span>Alcance {fmt(md.totalsPrev?.reach)}</span>
+                <span>Clics {fmt(md.totalsPrev?.clicks)}</span>
+                <span>Gasto {fm(md.totalsPrev?.spend)}</span>
+                <span>CPM {fm(md.totalsPrev?.cpm)}</span>
+                <span>CPC {fm(md.totalsPrev?.cpc)}</span>
+                <span>CTR {fp(md.totalsPrev?.ctr)}</span>
+              </div>
+            )}
           </>
         )}
  
