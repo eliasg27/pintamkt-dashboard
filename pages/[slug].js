@@ -710,6 +710,128 @@ export default function ClientePage() {
           </>
         )}
 
+        {/* TAB: FACEBOOK */}
+        {activeTab === 'facebook' && (
+          fbLoading ? <Spinner /> :
+          !fb ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos disponibles.</div> :
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877f2' }} />
+              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Facebook Orgánico</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Fans', val: fmt(fb.page?.fan_count), color: '#1877f2' },
+                { label: 'Seguidores', val: fmt(fb.page?.followers_count), color: '#1877f2' },
+                { label: 'Hablando de esto', val: fmt(fb.page?.talking_about_count), color: '#1877f2' },
+                { label: 'Posts', val: String(fb.posts?.length || 0), color: '#1877f2' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val || '—'}</div>
+                </div>
+              ))}
+            </div>
+            {fb.posts?.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877f2' }} />
+                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {fb.posts.length} en el período</span>
+                </div>
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                    <thead>
+                      <tr style={{ background: '#f9f9f8' }}>
+                        {['Post', 'Likes', 'Comentarios', 'Compartidos', 'Fecha'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fb.posts.map((post, i) => (
+                        <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)' }}>
+                          <td style={{ padding: '12px 14px', fontWeight: 500, fontSize: 13, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.message || '(sin texto)'}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{post.likes || 0}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{post.comments || 0}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{post.shares || 0}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: '#a1a1aa' }}>{post.created_time ? new Date(post.created_time).toLocaleDateString('es-AR') : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* TAB: INSTAGRAM */}
+        {activeTab === 'instagram' && (
+          igLoading ? <Spinner /> :
+          !ig ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos disponibles.</div> :
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e1306c' }} />
+              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Instagram Orgánico</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Seguidores', val: fmt(ig.totals?.followers_total), color: '#e1306c' },
+                { label: 'Alcance', val: fmt(ig.totals?.reach), color: '#e1306c' },
+                { label: 'Interacciones', val: fmt(ig.totals?.total_interactions), color: '#f09433' },
+                { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views), color: '#cc2366' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val || '—'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Likes', val: fmt(ig.totals?.likes), color: '#e1306c' },
+                { label: 'Comentarios', val: fmt(ig.totals?.comments), color: '#f09433' },
+                { label: 'Shares', val: fmt(ig.totals?.shares), color: '#cc2366' },
+                { label: 'Saves', val: fmt(ig.totals?.saved), color: '#833ab4' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val || '—'}</div>
+                </div>
+              ))}
+            </div>
+            {ig.posts?.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e1306c' }} />
+                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {ig.posts.length} publicaciones</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
+                  {ig.posts.slice(0,12).map((post, i) => (
+                    <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+                      {post.thumbnail_url || post.media_url ? (
+                        <img src={post.thumbnail_url || post.media_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ width: '100%', aspectRatio: '1', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📸</div>
+                      )}
+                      <div style={{ padding: '10px 12px' }}>
+                        <div style={{ fontSize: 12, color: '#3f3f46', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.caption || '(sin caption)'}</div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#e1306c' }}>♥ {post.like_count || 0}</span>
+                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#a1a1aa' }}>💬 {post.comments_count || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
         {/* FOOTER */}
         <div style={{ textAlign: 'center', padding: '2rem', fontSize: 11, color: '#9c9a92', borderTop: '.5px solid rgba(0,0,0,.09)', marginTop: '2rem' }}>
           Reporte generado por <strong>pintamkt</strong> · {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
