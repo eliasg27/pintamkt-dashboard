@@ -113,7 +113,7 @@ async function saveModulos(){
   setShowConfig(false);setActiveTab('resumen');
 }
 function openConfig(){setEditMods({...DEFAULT_MODS,...(current.modulos||{})});setShowConfig(true);}
-function openClient(c){setCurrent(c);setPage('client');setMetaData(null);setOrgFbData(null);setOrgIgData(null);setActiveTab('resumen');}
+function openClient(c){window.location.href='/'+c.slug;}
 function toggleCanal(c){setNewCliente(p=>({...p,canales:p.canales.includes(c)?p.canales.filter(x=>x!==c):[...p.canales,c]}));}
 
 const mods={...DEFAULT_MODS,...(current?.modulos||{})};
@@ -178,7 +178,7 @@ return(<><Head><title>Pintamkt</title></Head>
       <div className="cg">{clientes.map(c=>{
         const dc=c.estado==='activo'?'dg':c.estado==='revisar'?'dy':'dgr';
         const el=c.estado==='activo'?'Activo':c.estado==='revisar'?'Revisar':'Pausado';
-        return(<div key={c.id} className="cc" onClick={()=>openClient(c)}>
+        return(<div key={c.id} className="cc" onClick={()=>window.location.href='/'+c.slug}>
           <div className="ch"><div className="cn">{c.nombre}</div><div className="stp"><span className={`sd ${dc}`}/>{el}</div></div>
           <div className="ct">{(c.canales||[]).map(ch=><span key={ch} className={`tg`}>{LC[ch]||ch}</span>)}{!c.canales?.length&&<span className="tg">Sin canales</span>}</div>
           <div className="cf">
