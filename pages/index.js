@@ -111,10 +111,10 @@ async function deleteCliente(){
 async function saveModulos(){
   await sb.from('clientes').update({modulos:editMods}).eq('id',current.id);
   setCurrent(prev=>({...prev,modulos:editMods}));
-  setShowConfig(false);setActiveTab('resumen');
+  setShowConfig(false);
 }
 function openConfig(){setEditMods({...DEFAULT_MODS,...(current.modulos||{})});setShowConfig(true);}
-function openClient(c){setCurrent(c);setPage('client');setMetaData(null);setOrgFbData(null);setOrgIgData(null);setActiveTab('resumen');}
+function openClient(c){setCurrent(c);setPage('client');}
 function toggleCanal(c){setNewCliente(p=>({...p,canales:p.canales.includes(c)?p.canales.filter(x=>x!==c):[...p.canales,c]}));}
 
 const mods={...DEFAULT_MODS,...(current?.modulos||{})};
