@@ -14,6 +14,7 @@ const ALL_MODULES=[
   {key:'google_ads',label:'Google Ads',group:'Google',icon:'🔵'},
   {key:'ga4',label:'GA4 Analytics',group:'Google',icon:'🔵'},
   {key:'wordpress',label:'WordPress',group:'Web',icon:'🌐'},
+  {key:'woocommerce',label:'WooCommerce',group:'Web',icon:'🛒'},
 ];
 const LC={meta:'Meta Ads',google_ads:'Google Ads',ga4:'GA4',mensajes:'Mensajes',wordpress:'WordPress',search_console:'Search Console'};
 const DEFAULT_MODS={meta_resumen:true,meta_rendimiento:true,meta_resultados:true,meta_campanas:true,facebook_organico:false,instagram_organico:false,mensajes:false,google_ads:false,ga4:false,wordpress:false};
