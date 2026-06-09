@@ -265,156 +265,125 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
  
         {/* TAB: RESUMEN */}
         {activeTab === 'resumen' && (() => {
-          const dailyReach = md?.daily?.map(d => parseInt(d.reach || 0)) || [];
-          const dailyClicks = md?.daily?.map(d => parseInt(d.clicks || 0)) || [];
-          const dailySpend = md?.daily?.map(d => parseFloat(d.spend || 0)) || [];
-          const dailyCtr = md?.daily?.map(d => parseFloat(d.ctr || 0)) || [];
+          const anyLoading = metaLoading || igLoading || fbLoading || ga4Loading || wooLoading;
+          return (
+            <div onClick={() => setOpenMenu(null)}>
 
-          return metaLoading && !md ? <Spinner /> :
-            !c.meta_ad_account_id ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>Sin cuenta de Meta Ads configurada.</div>
-            ) : (
-              <div onClick={() => setOpenMenu(null)}>
-
-                {/* SECTION HEADER META */}
-                <div className="sect-hdr" style={{ marginBottom: 10 }}>
-                  <div className="sect-dot" style={{ background: '#1D9E75' }} />
-                  <span className="sect-title">Meta Ads</span>
-                  {metaLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+              {/* META ADS */}
+              {(mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) && c.meta_ad_account_id && (
+                <div style={{ marginBottom: 16 }}>
+                  <div className="sect-hdr" style={{ marginBottom: 10 }}>
+                    <div className="sect-dot" style={{ background: '#1D9E75' }} />
+                    <span className="sect-title">Meta Ads</span>
+                    {metaLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                  </div>
+                  {metaLoading && !md ? <Spinner /> : md ? (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
+                        <KpiCard id="reach" label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} invertDelta={false} color="#1D9E75" defViz="spark" dailyData={md.daily?.map(d=>parseInt(d.reach||0))||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                        <KpiCard id="clicks" label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} invertDelta={false} color="#2563eb" defViz="bars" dailyData={md.daily?.map(d=>parseInt(d.clicks||0))||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                        <KpiCard id="spend" label="Gasto" val={fm(t.spend)} sub="total USD" delta={dl.spend} invertDelta={true} color="#f59e0b" defViz="donut" dailyData={md.daily?.map(d=>parseFloat(d.spend||0))||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                        <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={md.daily?.map(d=>parseFloat(d.ctr||0))||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                      </div>
+                      <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '8px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: '#a1a1aa' }}>Período anterior</span>
+                        {[['Alcance', fmt(md.totalsPrev?.reach)],['Clics', fmt(md.totalsPrev?.clicks)],['Gasto', fm(md.totalsPrev?.spend)],['CPM', fm(md.totalsPrev?.cpm)],['CTR', fp(md.totalsPrev?.ctr)]].map(([l,v]) => (
+                          <span key={l} style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#71717a' }}>{l} <strong style={{ color: '#18181b', fontWeight: 600 }}>{v}</strong></span>
+                        ))}
+                      </div>
+                    </>
+                  ) : <div style={{ fontSize: 12, color: '#a1a1aa', padding: '1rem' }}>Sin datos para el período.</div>}
                 </div>
+              )}
 
-                {/* KPI GRID 4 cols */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
-                  {md ? <>
-                    <KpiCard id="reach" label="Alcance" val={fmt(t.reach)} sub="personas" delta={dl.reach} invertDelta={false} color="#1D9E75" defViz="spark" dailyData={dailyReach} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-                    <KpiCard id="clicks" label="Clics" val={fmt(t.clicks)} sub="en anuncios" delta={dl.clicks} invertDelta={false} color="#2563eb" defViz="bars" dailyData={dailyClicks} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-                    <KpiCard id="spend" label="Gasto" val={fm(t.spend)} sub="total USD" delta={dl.spend} invertDelta={true} color="#f59e0b" defViz="donut" dailyData={dailySpend} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-                    <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={dailyCtr} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-                  </> : (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#9c9a92' }}>Sin datos para el período.</div>
+              {/* INSTAGRAM + FACEBOOK en fila */}
+              {(mods.instagram_organico || mods.facebook_organico) && (
+                <div style={{ display: 'grid', gridTemplateColumns: mods.instagram_organico && mods.facebook_organico ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 16 }}>
+                  {mods.instagram_organico && c.ig_account_id && (
+                    <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                      <div style={{ height: 3, background: '#e1306c', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                      <div className="sect-hdr">
+                        <div className="sect-dot" style={{ background: '#e1306c' }} />
+                        <span className="sect-title">Instagram Orgánico</span>
+                        {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#e1306c', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                      </div>
+                      {ig ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+                          {[['Seguidores', fmt(ig.totals?.followers_total)],['Alcance', fmt(ig.totals?.reach)],['Interacciones', fmt(ig.totals?.total_interactions)],['Visitas perfil', fmt(ig.totals?.profile_views)]].map(([l,v]) => (
+                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 18, fontWeight: 700, color: '#18181b' }}>{v||'—'}</div></div>
+                          ))}
+                        </div>
+                      ) : igLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div> : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos</div>}
+                    </div>
+                  )}
+                  {mods.facebook_organico && c.fb_page_id && (
+                    <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                      <div style={{ height: 3, background: '#1877f2', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                      <div className="sect-hdr">
+                        <div className="sect-dot" style={{ background: '#1877f2' }} />
+                        <span className="sect-title">Facebook Orgánico</span>
+                        {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1877f2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
+                      </div>
+                      {fb ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          {[['Fans', fmt(fb.page?.fan_count)],['Seguidores', fmt(fb.page?.followers_count)],['Hablando', fmt(fb.page?.talking_about_count)],['Posts', String(fb.posts?.length||0)]].map(([l,v]) => (
+                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b' }}>{v||'—'}</div></div>
+                          ))}
+                        </div>
+                      ) : fbLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div> : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos</div>}
+                    </div>
                   )}
                 </div>
+              )}
 
-                {/* SEGUNDA FILA: CPM CPC Frecuencia Impresiones */}
-                {md && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 10 }}>
-                    {[
-                      { id: 'cpm', label: 'CPM', val: fm(t.cpm), sub: 'por mil imp.', delta: dl.cpm, inv: true, color: '#f59e0b' },
-                      { id: 'cpc', label: 'CPC', val: fm(t.cpc), sub: 'por clic', delta: dl.cpc, inv: true, color: '#2563eb' },
-                      { id: 'impressions', label: 'Impresiones', val: fmt(t.impressions), sub: 'total', delta: dl.impressions, inv: false, color: '#1D9E75' },
-                      { id: 'frequency', label: 'Frecuencia', val: t.frequency ? t.frequency.toFixed(2) : '—', sub: 'veces/persona', delta: null, inv: false, color: '#a1a1aa' },
-                    ].map(k => (
-                      <div key={k.id} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '12px 14px', position: 'relative' }}>
-                        <div style={{ height: 3, background: k.color + '55', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                        <div className="kpi-lbl">{k.label}</div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b', letterSpacing: '-.02em' }}>{k.val}</div>
-                        <div className="kpi-sub">{k.sub}
-                          {k.delta != null && (() => { const good = k.inv ? k.delta <= 0 : k.delta >= 0; return <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>; })()}
-                        </div>
-                      </div>
-                    ))}
+              {/* GA4 */}
+              {mods.ga4 && (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, position: 'relative' }}>
+                  <div style={{ height: 3, background: '#4285f4', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="sect-hdr">
+                    <div className="sect-dot" style={{ background: '#4285f4' }} />
+                    <span className="sect-title">Google Analytics 4</span>
+                    {ga4Loading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#4285f4', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
                   </div>
-                )}
+                  {ga4 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
+                      {[['Sesiones', fmt(ga4.totals?.sessions),'#4285f4'],['Usuarios', fmt(ga4.totals?.users),'#34a853'],['Páginas vistas', fmt(ga4.totals?.pageviews),'#ea4335'],['Rebote', ga4.totals?.bounceRate ? (ga4.totals.bounceRate*100).toFixed(1)+'%' : '—','#fbbc04']].map(([l,v,c]) => (
+                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b' }}>{v||'—'}</div></div>
+                      ))}
+                    </div>
+                  ) : ga4Loading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div> : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos</div>}
+                </div>
+              )}
 
-                {/* IG + FB */}
-                {(mods.instagram_organico || mods.facebook_organico) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: mods.instagram_organico && mods.facebook_organico ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 10 }}>
-
-                    {mods.instagram_organico && (
-                      <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                        <div style={{ height: 3, background: '#e1306c', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                        <div className="sect-hdr">
-                          <div className="sect-dot" style={{ background: '#e1306c' }} />
-                          <span className="sect-title">Instagram Orgánico</span>
-                          {igLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#e1306c', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
-                        </div>
-                        {ig ? (
-                          <>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-                              {[
-                                { label: 'Seguidores', val: fmt(ig.totals?.followers_total) },
-                                { label: 'Alcance', val: fmt(ig.totals?.reach) },
-                                { label: 'Interacciones', val: fmt(ig.totals?.total_interactions) },
-                                { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views) },
-                              ].map(k => (
-                                <div key={k.label}>
-                                  <div className="kpi-lbl">{k.label}</div>
-                                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 18, fontWeight: 700, color: '#18181b', letterSpacing: '-.01em' }}>{k.val || '—'}</div>
-                                </div>
-                              ))}
-                            </div>
-                            <div>
-                              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 5 }}>Distribución de interacciones</div>
-                              <div style={{ display: 'flex', gap: 2, height: 6, borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ width: fmt(ig.totals?.likes) > 0 ? '55%' : '0', background: '#e1306c' }} />
-                                <div style={{ width: fmt(ig.totals?.comments) > 0 ? '20%' : '0', background: '#f09433' }} />
-                                <div style={{ width: fmt(ig.totals?.shares) > 0 ? '15%' : '0', background: '#cc2366' }} />
-                                <div style={{ flex: 1, background: '#f4f4f5' }} />
-                              </div>
-                              <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
-                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#e1306c' }}>● Likes</span>
-                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#f09433' }}>● Comentarios</span>
-                                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: '#cc2366' }}>● Shares</span>
-                              </div>
-                            </div>
-                          </>
-                        ) : igLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div>
-                          : !c.ig_account_id ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin cuenta configurada</div>
-                          : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos disponibles</div>}
-                      </div>
-                    )}
-
-                    {mods.facebook_organico && (
-                      <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                        <div style={{ height: 3, background: '#1877f2', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                        <div className="sect-hdr">
-                          <div className="sect-dot" style={{ background: '#1877f2' }} />
-                          <span className="sect-title">Facebook Orgánico</span>
-                          {fbLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#1877f2', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
-                        </div>
-                        {fb ? (
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                            {[
-                              { label: 'Fans', val: fmt(fb.page?.fan_count) },
-                              { label: 'Seguidores', val: fmt(fb.page?.followers_count) },
-                              { label: 'Hablando', val: fmt(fb.page?.talking_about_count) },
-                              { label: 'Posts', val: String(fb.posts?.length || 0) },
-                            ].map(k => (
-                              <div key={k.label}>
-                                <div className="kpi-lbl">{k.label}</div>
-                                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b', letterSpacing: '-.02em' }}>{k.val || '—'}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : fbLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div>
-                          : !c.fb_page_id ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin página configurada</div>
-                          : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos disponibles</div>}
-                      </div>
-                    )}
+              {/* WOOCOMMERCE */}
+              {mods.woocommerce && (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', marginBottom: 16, position: 'relative' }}>
+                  <div style={{ height: 3, background: '#7f54b3', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="sect-hdr">
+                    <div className="sect-dot" style={{ background: '#7f54b3' }} />
+                    <span className="sect-title">WooCommerce</span>
+                    {wooLoading && <div style={{ width: 12, height: 12, border: '2px solid #e0e0e0', borderTopColor: '#7f54b3', borderRadius: '50%', animation: 'spin .7s linear infinite', marginLeft: 8 }} />}
                   </div>
-                )}
+                  {woo ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
+                      {[['Ingresos', '$'+(woo.totals?.revenue?.toLocaleString('es-AR',{minimumFractionDigits:0})||'0')],['Pedidos', String(woo.totals?.orders||0)],['Ticket prom.', '$'+Math.round(woo.totals?.avgOrderValue||0).toLocaleString('es-AR')],['Productos top', String(woo.topProducts?.length||0)]].map(([l,v]) => (
+                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: '#18181b' }}>{v||'—'}</div></div>
+                      ))}
+                    </div>
+                  ) : wooLoading ? <div style={{ fontSize: 12, color: '#a1a1aa' }}>Cargando...</div> : <div style={{ fontSize: 12, color: '#a1a1aa' }}>Sin datos</div>}
+                </div>
+              )}
 
-                {/* PERÍODO ANTERIOR */}
-                {md && (
-                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: '#a1a1aa' }}>Período anterior</span>
-                    {[
-                      ['Alcance', fmt(md.totalsPrev?.reach)],
-                      ['Clics', fmt(md.totalsPrev?.clicks)],
-                      ['Gasto', fm(md.totalsPrev?.spend)],
-                      ['CPM', fm(md.totalsPrev?.cpm)],
-                      ['CPC', fm(md.totalsPrev?.cpc)],
-                      ['CTR', fp(md.totalsPrev?.ctr)],
-                    ].map(([l, v]) => (
-                      <span key={l} style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#71717a' }}>
-                        {l} <strong style={{ color: '#18181b', fontWeight: 600 }}>{v}</strong>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              {/* Sin módulos */}
+              {!c.meta_ad_account_id && !mods.instagram_organico && !mods.facebook_organico && !mods.ga4 && !mods.woocommerce && (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#9c9a92', fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
+                  No hay módulos activos. Activalos desde ⚙ Módulos.
+                </div>
+              )}
 
-              </div>
-            );
+            </div>
+          );
         })()}
 
 
