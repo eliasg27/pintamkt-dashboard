@@ -43,69 +43,6 @@ function KPI({ label, val, sub, delta, invertDelta }) {
           </span>
         )}
       </div>
-        {/* TAB: WOOCOMMERCE */}
-        {activeTab === 'woocommerce' && (
-          wooLoading ? <Spinner /> :
-          !woo ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos de WooCommerce.</div> :
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7f54b3' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Ingresos', val: '$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0'), sub: 'total período', color: '#7f54b3' },
-                { label: 'Pedidos', val: String(woo.totals?.orders || 0), sub: 'completados', color: '#7f54b3' },
-                { label: 'Ticket promedio', val: '$' + Math.round(woo.totals?.avgOrderValue || 0).toLocaleString('es-AR'), sub: 'por pedido', color: '#9b6dce' },
-                { label: 'Impuestos', val: '$' + Math.round(woo.totals?.totalTax || 0).toLocaleString('es-AR'), sub: 'total', color: '#b89dda' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val" style={{ fontSize: 22 }}>{k.val}</div>
-                  <div className="kpi-sub">{k.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              {woo.topProducts?.length > 0 && (
-                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
-                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Productos más vendidos</div>
-                  {woo.topProducts.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < woo.topProducts.length - 1 ? '.5px solid rgba(0,0,0,.05)' : 'none' }}>
-                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.name}</span>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600, color: '#7f54b3' }}>${Math.round(p.revenue).toLocaleString('es-AR')}</div>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: '#a1a1aa' }}>{p.qty} uds</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {woo.daily?.length > 0 && (
-                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
-                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Pedidos por día</div>
-                  {(() => {
-                    const max = Math.max(...woo.daily.map(d => d.revenue));
-                    return woo.daily.slice(-14).map((d, i) => (
-                      <div key={i} style={{ marginBottom: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: '#a1a1aa' }}>{d.date?.slice(5)}</span>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#3f3f46' }}>${Math.round(d.revenue).toLocaleString('es-AR')} · {d.orders} ped.</span>
-                        </div>
-                        <div style={{ height: 4, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: max > 0 ? (d.revenue/max*100)+'%' : '0', background: '#7f54b3', borderRadius: 2 }} />
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          </>
-        )}
 
     </div>
   );
@@ -187,69 +124,6 @@ function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, daily
           </div>
         </div>
       )}
-        {/* TAB: WOOCOMMERCE */}
-        {activeTab === 'woocommerce' && (
-          wooLoading ? <Spinner /> :
-          !woo ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos de WooCommerce.</div> :
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7f54b3' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Ingresos', val: '$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0'), sub: 'total período', color: '#7f54b3' },
-                { label: 'Pedidos', val: String(woo.totals?.orders || 0), sub: 'completados', color: '#7f54b3' },
-                { label: 'Ticket promedio', val: '$' + Math.round(woo.totals?.avgOrderValue || 0).toLocaleString('es-AR'), sub: 'por pedido', color: '#9b6dce' },
-                { label: 'Impuestos', val: '$' + Math.round(woo.totals?.totalTax || 0).toLocaleString('es-AR'), sub: 'total', color: '#b89dda' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val" style={{ fontSize: 22 }}>{k.val}</div>
-                  <div className="kpi-sub">{k.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              {woo.topProducts?.length > 0 && (
-                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
-                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Productos más vendidos</div>
-                  {woo.topProducts.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < woo.topProducts.length - 1 ? '.5px solid rgba(0,0,0,.05)' : 'none' }}>
-                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.name}</span>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600, color: '#7f54b3' }}>${Math.round(p.revenue).toLocaleString('es-AR')}</div>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: '#a1a1aa' }}>{p.qty} uds</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {woo.daily?.length > 0 && (
-                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
-                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Pedidos por día</div>
-                  {(() => {
-                    const max = Math.max(...woo.daily.map(d => d.revenue));
-                    return woo.daily.slice(-14).map((d, i) => (
-                      <div key={i} style={{ marginBottom: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: '#a1a1aa' }}>{d.date?.slice(5)}</span>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#3f3f46' }}>${Math.round(d.revenue).toLocaleString('es-AR')} · {d.orders} ped.</span>
-                        </div>
-                        <div style={{ height: 4, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: max > 0 ? (d.revenue/max*100)+'%' : '0', background: '#7f54b3', borderRadius: 2 }} />
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          </>
-        )}
 
     </div>
   );
