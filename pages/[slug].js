@@ -226,7 +226,8 @@ export default function ClientePage() {
         .then(d => { if (!d.error) setGa4(d); else console.error('GA4 error:', d.error); })
         .catch(e => console.error('GA4 fetch error:', e))
         .finally(() => setGa4Loading(false));
-    } — usa c.ig_account_id directo de Supabase
+    } 
+    // INSTAGRAM ORGÁNICO — usa c.ig_account_id directo de Supabase
     if (mods.instagram_organico && c.ig_account_id) {
       setIgLoading(true);
       setIg(null);
