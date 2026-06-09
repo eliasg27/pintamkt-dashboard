@@ -580,32 +580,16 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Instagram Orgánico</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Seguidores', val: fmt(ig.totals?.followers_total), color: '#e1306c' },
-                { label: 'Alcance', val: fmt(ig.totals?.reach), color: '#e1306c' },
-                { label: 'Interacciones', val: fmt(ig.totals?.total_interactions), color: '#f09433' },
-                { label: 'Visitas perfil', val: fmt(ig.totals?.profile_views), color: '#cc2366' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val">{k.val || '—'}</div>
-                </div>
-              ))}
+              <KpiCard id="ig_followers" label="Seguidores" val={fmt(ig.totals?.followers_total)} sub="total" color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" color="#e1306c" defViz="spark" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" color="#f09433" defViz="bars" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Likes', val: fmt(ig.totals?.likes), color: '#e1306c' },
-                { label: 'Comentarios', val: fmt(ig.totals?.comments), color: '#f09433' },
-                { label: 'Shares', val: fmt(ig.totals?.shares), color: '#cc2366' },
-                { label: 'Saves', val: fmt(ig.totals?.saved), color: '#833ab4' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val">{k.val || '—'}</div>
-                </div>
-              ))}
+              <KpiCard id="ig_likes" label="Likes" val={fmt(ig.totals?.likes)} sub="total" color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_comments" label="Comentarios" val={fmt(ig.totals?.comments)} sub="total" color="#f09433" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_shares" label="Shares" val={fmt(ig.totals?.shares)} sub="total" color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_saves" label="Saves" val={fmt(ig.totals?.saved)} sub="total" color="#833ab4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             {ig.posts?.length > 0 && (
               <>
@@ -646,33 +630,15 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Google Analytics 4</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Sesiones', val: fmt(ga4.totals?.sessions), sub: 'total', color: '#4285f4' },
-                { label: 'Usuarios', val: fmt(ga4.totals?.users), sub: 'únicos', color: '#34a853' },
-                { label: 'Nuevos usuarios', val: fmt(ga4.totals?.newUsers), sub: 'primera visita', color: '#fbbc04' },
-                { label: 'Páginas vistas', val: fmt(ga4.totals?.pageviews), sub: 'total', color: '#ea4335' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val">{k.val || '—'}</div>
-                  <div className="kpi-sub">{k.sub}</div>
-                </div>
-              ))}
+              <KpiCard id="ga4_sessions" label="Sesiones" val={fmt(ga4.totals?.sessions)} sub="total" color="#4285f4" defViz="spark" dailyData={ga4.daily?.map(d=>d.sessions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_users" label="Usuarios" val={fmt(ga4.totals?.users)} sub="únicos" color="#34a853" defViz="bars" dailyData={ga4.daily?.map(d=>d.users)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_new_users" label="Nuevos usuarios" val={fmt(ga4.totals?.newUsers)} sub="primera visita" color="#fbbc04" defViz="spark" dailyData={ga4.daily?.map(d=>d.newUsers)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_pageviews" label="Páginas vistas" val={fmt(ga4.totals?.pageviews)} sub="total" color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.pageviews)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Tasa de rebote', val: ga4.totals?.bounceRate ? (ga4.totals.bounceRate * 100).toFixed(1) + '%' : '—', sub: 'bounce rate', color: '#4285f4' },
-                { label: 'Duración media', val: ga4.totals?.avgSession ? Math.floor(ga4.totals.avgSession / 60) + 'm ' + Math.floor(ga4.totals.avgSession % 60) + 's' : '—', sub: 'por sesión', color: '#34a853' },
-                { label: 'Conversiones', val: fmt(ga4.totals?.conversions), sub: 'total', color: '#ea4335' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val">{k.val || '—'}</div>
-                  <div className="kpi-sub">{k.sub}</div>
-                </div>
-              ))}
+              <KpiCard id="ga4_bounce" label="Tasa de rebote" val={ga4.totals?.bounceRate ? (ga4.totals.bounceRate*100).toFixed(1)+'%' : '—'} sub="bounce rate" color="#4285f4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_duration" label="Duración media" val={ga4.totals?.avgSession ? Math.floor(ga4.totals.avgSession/60)+'m '+Math.floor(ga4.totals.avgSession%60)+'s' : '—'} sub="por sesión" color="#34a853" defViz="number" dailyData={ga4.daily?.map(d=>d.avgSession)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_conversions" label="Conversiones" val={fmt(ga4.totals?.conversions)} sub="total" color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.conversions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
 
             {/* Fuentes de tráfico + Top páginas */}
@@ -721,19 +687,10 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              {[
-                { label: 'Ingresos', val: '$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0'), sub: 'total período', color: '#7f54b3' },
-                { label: 'Pedidos', val: String(woo.totals?.orders || 0), sub: 'completados', color: '#7f54b3' },
-                { label: 'Ticket promedio', val: '$' + Math.round(woo.totals?.avgOrderValue || 0).toLocaleString('es-AR'), sub: 'por pedido', color: '#9b6dce' },
-                { label: 'Impuestos', val: '$' + Math.round(woo.totals?.totalTax || 0).toLocaleString('es-AR'), sub: 'total', color: '#b89dda' },
-              ].map(k => (
-                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                  <div className="kpi-lbl">{k.label}</div>
-                  <div className="kpi-val" style={{ fontSize: 22 }}>{k.val}</div>
-                  <div className="kpi-sub">{k.sub}</div>
-                </div>
-              ))}
+              <KpiCard id="woo_revenue" label="Ingresos" val={'$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0')} sub="total período" color="#7f54b3" defViz="spark" dailyData={woo.daily?.map(d=>d.revenue)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="woo_orders" label="Pedidos" val={String(woo.totals?.orders || 0)} sub="completados" color="#7f54b3" defViz="bars" dailyData={woo.daily?.map(d=>d.orders)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="woo_avg" label="Ticket promedio" val={'$' + Math.round(woo.totals?.avgOrderValue || 0).toLocaleString('es-AR')} sub="por pedido" color="#9b6dce" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="woo_tax" label="Impuestos" val={'$' + Math.round(woo.totals?.totalTax || 0).toLocaleString('es-AR')} sub="total" color="#b89dda" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
