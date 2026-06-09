@@ -156,6 +156,8 @@ export default function ClientePage() {
   const [md, setMd] = useState(null);
   const [fb, setFb] = useState(null);
   const [ig, setIg] = useState(null);
+  const [ga4, setGa4] = useState(null);
+  const [ga4Loading, setGa4Loading] = useState(false);
   const [tab, setTab] = useState('resumen');
   const [metaLoading, setMetaLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
@@ -215,7 +217,16 @@ export default function ClientePage() {
         .finally(() => setFbLoading(false));
     }
  
-    // INSTAGRAM ORGÁNICO — usa c.ig_account_id directo de Supabase
+    // GA4
+    if (mods.ga4) {
+      setGa4Loading(true);
+      setGa4(null);
+      fetch(`/api/ga4?slug=${c.slug}&since=${df}&until=${dt}`)
+        .then(r => r.json())
+        .then(d => { if (!d.error) setGa4(d); else console.error('GA4 error:', d.error); })
+        .catch(e => console.error('GA4 fetch error:', e))
+        .finally(() => setGa4Loading(false));
+    } — usa c.ig_account_id directo de Supabase
     if (mods.instagram_organico && c.ig_account_id) {
       setIgLoading(true);
       setIg(null);
@@ -317,6 +328,7 @@ export default function ClientePage() {
   if (mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) tabs.push({ k: 'metaads', l: 'Meta Ads' });
   if (mods.facebook_organico && c.fb_page_id) tabs.push({ k: 'facebook', l: '📘 Facebook' });
   if (mods.instagram_organico && c.ig_account_id) tabs.push({ k: 'instagram', l: '📸 Instagram' });
+  if (mods.ga4) tabs.push({ k: 'ga4', l: '📊 GA4' });
  
   // Asegurarse que el tab activo es válido
   const tabKeys = tabs.map(t => t.k);
@@ -829,6 +841,82 @@ export default function ClientePage() {
                 </div>
               </>
             )}
+          </>
+        )}
+
+        {/* TAB: GA4 */}
+        {activeTab === 'ga4' && (
+          ga4Loading ? <Spinner /> :
+          !ga4 ? <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>Sin datos de GA4 disponibles.</div> :
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4285f4' }} />
+              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Google Analytics 4</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Sesiones', val: fmt(ga4.totals?.sessions), sub: 'total', color: '#4285f4' },
+                { label: 'Usuarios', val: fmt(ga4.totals?.users), sub: 'únicos', color: '#34a853' },
+                { label: 'Nuevos usuarios', val: fmt(ga4.totals?.newUsers), sub: 'primera visita', color: '#fbbc04' },
+                { label: 'Páginas vistas', val: fmt(ga4.totals?.pageviews), sub: 'total', color: '#ea4335' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val || '—'}</div>
+                  <div className="kpi-sub">{k.sub}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Tasa de rebote', val: ga4.totals?.bounceRate ? (ga4.totals.bounceRate * 100).toFixed(1) + '%' : '—', sub: 'bounce rate', color: '#4285f4' },
+                { label: 'Duración media', val: ga4.totals?.avgSession ? Math.floor(ga4.totals.avgSession / 60) + 'm ' + Math.floor(ga4.totals.avgSession % 60) + 's' : '—', sub: 'por sesión', color: '#34a853' },
+                { label: 'Conversiones', val: fmt(ga4.totals?.conversions), sub: 'total', color: '#ea4335' },
+              ].map(k => (
+                <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                  <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                  <div className="kpi-lbl">{k.label}</div>
+                  <div className="kpi-val">{k.val || '—'}</div>
+                  <div className="kpi-sub">{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Fuentes de tráfico + Top páginas */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+              {ga4.sources?.length > 0 && (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
+                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Fuentes de tráfico</div>
+                  {(() => {
+                    const total = ga4.sources.reduce((s, x) => s + x.sessions, 0);
+                    const colors = ['#4285f4','#34a853','#fbbc04','#ea4335','#9c27b0','#ff6d00'];
+                    return ga4.sources.map((s, i) => (
+                      <div key={i} style={{ marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: '#3f3f46' }}>{s.channel}</span>
+                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600, color: '#18181b' }}>{fmt(s.sessions)}</span>
+                        </div>
+                        <div style={{ height: 4, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: (s.sessions / total * 100) + '%', background: colors[i % colors.length], borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
+              {ga4.topPages?.length > 0 && (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px' }}>
+                  <div className="kpi-lbl" style={{ marginBottom: 12 }}>Páginas más vistas</div>
+                  {ga4.topPages.slice(0, 8).map((p, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < ga4.topPages.length - 1 ? '.5px solid rgba(0,0,0,.05)' : 'none' }}>
+                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{p.path}</span>
+                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, fontWeight: 600, color: '#4285f4', flexShrink: 0 }}>{fmt(p.pageviews)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
 
