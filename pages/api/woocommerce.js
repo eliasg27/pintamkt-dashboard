@@ -80,6 +80,28 @@ export default async function handler(req, res) {
 
     const salesReport = Array.isArray(reports) ? reports[0] : null;
 
+    // Prev period
+    const daysDiff = Math.ceil((new Date(dateTo) - new Date(dateFrom)) / (1000*60*60*24)) || 30;
+    const prevTo = new Date(dateFrom); prevTo.setDate(prevTo.getDate()-1);
+    const prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate()-daysDiff);
+    const pF = prevFrom.toISOString().slice(0,10); const pT = prevTo.toISOString().slice(0,10);
+
+    let prevRevenue = 0, prevOrders = 0;
+    try {
+      const prevOrdersRes = await fetch(`${site_url}/wp-json/wc/v3/orders?per_page=100&after=${pF}T00:00:00&before=${pT}T23:59:59&status=completed,processing`, { headers });
+      const prevOrdersData = await prevOrdersRes.json();
+      if (Array.isArray(prevOrdersData)) {
+        prevOrders = prevOrdersData.length;
+        prevRevenue = prevOrdersData.reduce((s,o) => s + parseFloat(o.total||0), 0);
+      }
+    } catch(e) {}
+
+    const delta = (cur, prev) => prev > 0 ? Math.round(((cur-prev)/prev)*100) : null;
+    const deltas = {
+      revenue: delta(totalRevenue, prevRevenue),
+      orders: delta(totalOrders, prevOrders),
+    };
+
     res.json({
       totals: {
         revenue: totalRevenue,
@@ -92,6 +114,7 @@ export default async function handler(req, res) {
       topProducts,
       statusCount,
       customers: Array.isArray(customers) ? customers : [],
+      deltas,
     });
   } catch (e) {
     console.error('WooCommerce error:', e);

@@ -151,7 +151,48 @@ export default async function handler(req, res) {
       sessions: parseInt(row.metricValues[0].value || 0),
     }));
 
-    res.json({ totals, daily: rows, topPages, sources });
+    // Calculate prev period
+    const days = Math.ceil((new Date(until || 'today') - new Date(since || '30daysAgo')) / (1000*60*60*24)) || 30;
+    const prevUntil = new Date(since || new Date(Date.now()-30*24*60*60*1000)); prevUntil.setDate(prevUntil.getDate()-1);
+    const prevSince = new Date(prevUntil); prevSince.setDate(prevSince.getDate()-days);
+    const prevRange = { startDate: prevSince.toISOString().slice(0,10), endDate: prevUntil.toISOString().slice(0,10) };
+
+    let prevTotals = {};
+    try {
+      const prevRes = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateRanges: [prevRange], metrics: [{ name:'sessions'},{ name:'totalUsers'},{ name:'newUsers'},{ name:'screenPageViews'},{ name:'bounceRate'},{ name:'averageSessionDuration'},{ name:'conversions'}], dimensions: [{ name:'date' }] }),
+      });
+      const prevData = await prevRes.json();
+      if (!prevData.error) {
+        const prevRows = (prevData.rows || []).map(r => ({
+          sessions: parseInt(r.metricValues[0].value||0), users: parseInt(r.metricValues[1].value||0),
+          newUsers: parseInt(r.metricValues[2].value||0), pageviews: parseInt(r.metricValues[3].value||0),
+          bounceRate: parseFloat(r.metricValues[4].value||0), avgSession: parseFloat(r.metricValues[5].value||0),
+          conversions: parseInt(r.metricValues[6].value||0),
+        }));
+        prevTotals = {
+          sessions: prevRows.reduce((s,r)=>s+r.sessions,0), users: prevRows.reduce((s,r)=>s+r.users,0),
+          newUsers: prevRows.reduce((s,r)=>s+r.newUsers,0), pageviews: prevRows.reduce((s,r)=>s+r.pageviews,0),
+          bounceRate: prevRows.length ? prevRows.reduce((s,r)=>s+r.bounceRate,0)/prevRows.length : 0,
+          avgSession: prevRows.length ? prevRows.reduce((s,r)=>s+r.avgSession,0)/prevRows.length : 0,
+          conversions: prevRows.reduce((s,r)=>s+r.conversions,0),
+        };
+      }
+    } catch(e) {}
+
+    const delta = (cur, prev) => prev > 0 ? Math.round(((cur-prev)/prev)*100) : null;
+    const deltas = {
+      sessions: delta(totals.sessions, prevTotals.sessions),
+      users: delta(totals.users, prevTotals.users),
+      newUsers: delta(totals.newUsers, prevTotals.newUsers),
+      pageviews: delta(totals.pageviews, prevTotals.pageviews),
+      bounceRate: delta(totals.bounceRate, prevTotals.bounceRate),
+      conversions: delta(totals.conversions, prevTotals.conversions),
+    };
+
+    res.json({ totals, daily: rows, topPages, sources, prevTotals, deltas });
   } catch (e) {
     console.error('GA4 error:', e);
     res.status(500).json({ error: e.message });

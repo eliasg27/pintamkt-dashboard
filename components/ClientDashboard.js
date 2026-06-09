@@ -166,8 +166,25 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
       setIgLoading(true); setIg(null);
       const igDiff = (new Date(dt) - new Date(df)) / (1000*60*60*24);
       const igSince = igDiff > 30 ? (() => { const d = new Date(dt); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); })() : df;
-      fetch(`/api/organic?ig_id=${c.ig_account_id}&since=${igSince}&until=${dt}`)
-        .then(r => r.json()).then(d => { if (!d.error) setIg(d); }).catch(()=>{}).finally(() => setIgLoading(false));
+      // Fetch current + prev period in parallel
+      const prevUntil = new Date(igSince); prevUntil.setDate(prevUntil.getDate()-1);
+      const prevSince = new Date(prevUntil); prevSince.setDate(prevSince.getDate()-30);
+      Promise.all([
+        fetch(`/api/organic?ig_id=${c.ig_account_id}&since=${igSince}&until=${dt}`).then(r=>r.json()),
+        fetch(`/api/organic?ig_id=${c.ig_account_id}&since=${prevSince.toISOString().slice(0,10)}&until=${prevUntil.toISOString().slice(0,10)}`).then(r=>r.json()),
+      ]).then(([cur, prev]) => {
+        if (!cur.error) {
+          const delta = (a, b) => b > 0 ? Math.round(((a-b)/b)*100) : null;
+          cur.deltas = {
+            reach: delta(cur.totals?.reach, prev.totals?.reach),
+            total_interactions: delta(cur.totals?.total_interactions, prev.totals?.total_interactions),
+            profile_views: delta(cur.totals?.profile_views, prev.totals?.profile_views),
+            likes: delta(cur.totals?.likes, prev.totals?.likes),
+            comments: delta(cur.totals?.comments, prev.totals?.comments),
+          };
+          setIg(cur);
+        }
+      }).catch(()=>{}).finally(() => setIgLoading(false));
     }
     if (mods.ga4) {
       setGa4Loading(true); setGa4(null);
@@ -581,13 +598,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               <KpiCard id="ig_followers" label="Seguidores" val={fmt(ig.totals?.followers_total)} sub="total" color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" color="#e1306c" defViz="spark" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" color="#f09433" defViz="bars" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" delta={ig.deltas?.reach} invertDelta={false} color="#e1306c" defViz="spark" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" delta={ig.deltas?.total_interactions} invertDelta={false} color="#f09433" defViz="bars" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" delta={ig.deltas?.profile_views} invertDelta={false} color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="ig_likes" label="Likes" val={fmt(ig.totals?.likes)} sub="total" color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_comments" label="Comentarios" val={fmt(ig.totals?.comments)} sub="total" color="#f09433" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_likes" label="Likes" val={fmt(ig.totals?.likes)} sub="total" delta={ig.deltas?.likes} invertDelta={false} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_comments" label="Comentarios" val={fmt(ig.totals?.comments)} sub="total" delta={ig.deltas?.comments} invertDelta={false} color="#f09433" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_shares" label="Shares" val={fmt(ig.totals?.shares)} sub="total" color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_saves" label="Saves" val={fmt(ig.totals?.saved)} sub="total" color="#833ab4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
@@ -630,15 +647,15 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Google Analytics 4</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="ga4_sessions" label="Sesiones" val={fmt(ga4.totals?.sessions)} sub="total" color="#4285f4" defViz="spark" dailyData={ga4.daily?.map(d=>d.sessions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ga4_users" label="Usuarios" val={fmt(ga4.totals?.users)} sub="únicos" color="#34a853" defViz="bars" dailyData={ga4.daily?.map(d=>d.users)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ga4_new_users" label="Nuevos usuarios" val={fmt(ga4.totals?.newUsers)} sub="primera visita" color="#fbbc04" defViz="spark" dailyData={ga4.daily?.map(d=>d.newUsers)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ga4_pageviews" label="Páginas vistas" val={fmt(ga4.totals?.pageviews)} sub="total" color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.pageviews)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_sessions" label="Sesiones" val={fmt(ga4.totals?.sessions)} sub="total" delta={ga4.deltas?.sessions} invertDelta={false} color="#4285f4" defViz="spark" dailyData={ga4.daily?.map(d=>d.sessions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_users" label="Usuarios" val={fmt(ga4.totals?.users)} sub="únicos" delta={ga4.deltas?.users} invertDelta={false} color="#34a853" defViz="bars" dailyData={ga4.daily?.map(d=>d.users)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_new_users" label="Nuevos usuarios" val={fmt(ga4.totals?.newUsers)} sub="primera visita" delta={ga4.deltas?.newUsers} invertDelta={false} color="#fbbc04" defViz="spark" dailyData={ga4.daily?.map(d=>d.newUsers)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_pageviews" label="Páginas vistas" val={fmt(ga4.totals?.pageviews)} sub="total" delta={ga4.deltas?.pageviews} invertDelta={false} color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.pageviews)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="ga4_bounce" label="Tasa de rebote" val={ga4.totals?.bounceRate ? (ga4.totals.bounceRate*100).toFixed(1)+'%' : '—'} sub="bounce rate" color="#4285f4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_bounce" label="Tasa de rebote" val={ga4.totals?.bounceRate ? (ga4.totals.bounceRate*100).toFixed(1)+'%' : '—'} sub="bounce rate" delta={ga4.deltas?.bounceRate} invertDelta={true} color="#4285f4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ga4_duration" label="Duración media" val={ga4.totals?.avgSession ? Math.floor(ga4.totals.avgSession/60)+'m '+Math.floor(ga4.totals.avgSession%60)+'s' : '—'} sub="por sesión" color="#34a853" defViz="number" dailyData={ga4.daily?.map(d=>d.avgSession)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ga4_conversions" label="Conversiones" val={fmt(ga4.totals?.conversions)} sub="total" color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.conversions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ga4_conversions" label="Conversiones" val={fmt(ga4.totals?.conversions)} sub="total" delta={ga4.deltas?.conversions} invertDelta={false} color="#ea4335" defViz="bars" dailyData={ga4.daily?.map(d=>d.conversions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
 
             {/* Fuentes de tráfico + Top páginas */}
@@ -687,8 +704,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="woo_revenue" label="Ingresos" val={'$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0')} sub="total período" color="#7f54b3" defViz="spark" dailyData={woo.daily?.map(d=>d.revenue)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="woo_orders" label="Pedidos" val={String(woo.totals?.orders || 0)} sub="completados" color="#7f54b3" defViz="bars" dailyData={woo.daily?.map(d=>d.orders)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="woo_revenue" label="Ingresos" val={'$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0')} sub="total período" delta={woo.deltas?.revenue} invertDelta={false} color="#7f54b3" defViz="spark" dailyData={woo.daily?.map(d=>d.revenue)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="woo_orders" label="Pedidos" val={String(woo.totals?.orders || 0)} sub="completados" delta={woo.deltas?.orders} invertDelta={false} color="#7f54b3" defViz="bars" dailyData={woo.daily?.map(d=>d.orders)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="woo_avg" label="Ticket promedio" val={'$' + Math.round(woo.totals?.avgOrderValue || 0).toLocaleString('es-AR')} sub="por pedido" color="#9b6dce" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="woo_tax" label="Impuestos" val={'$' + Math.round(woo.totals?.totalTax || 0).toLocaleString('es-AR')} sub="total" color="#b89dda" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
