@@ -113,7 +113,7 @@ async function saveModulos(){
   setShowConfig(false);setActiveTab('resumen');
 }
 function openConfig(){setEditMods({...DEFAULT_MODS,...(current.modulos||{})});setShowConfig(true);}
-function openClient(c){window.location.href='/'+c.slug;}
+function openClient(c){setCurrent(c);setPage('client');setMetaData(null);setOrgFbData(null);setOrgIgData(null);setActiveTab('resumen');}
 function toggleCanal(c){setNewCliente(p=>({...p,canales:p.canales.includes(c)?p.canales.filter(x=>x!==c):[...p.canales,c]}));}
 
 const mods={...DEFAULT_MODS,...(current?.modulos||{})};
@@ -178,7 +178,7 @@ return(<><Head><title>Pintamkt</title></Head>
       <div className="cg">{clientes.map(c=>{
         const dc=c.estado==='activo'?'dg':c.estado==='revisar'?'dy':'dgr';
         const el=c.estado==='activo'?'Activo':c.estado==='revisar'?'Revisar':'Pausado';
-        return(<div key={c.id} className="cc" onClick={()=>window.location.href='/'+c.slug}>
+        return(<div key={c.id} className="cc" onClick={()=>openClient(c)}>
           <div className="ch"><div className="cn">{c.nombre}</div><div className="stp"><span className={`sd ${dc}`}/>{el}</div></div>
           <div className="ct">{(c.canales||[]).map(ch=><span key={ch} className={`tg`}>{LC[ch]||ch}</span>)}{!c.canales?.length&&<span className="tg">Sin canales</span>}</div>
           <div className="cf">
@@ -194,127 +194,24 @@ return(<><Head><title>Pintamkt</title></Head>
       })}</div>
     </div>}
 
-    {page==='client'&&current&&<div>
-      <div className="dh">
+    {page==='client'&&current&&<div style={{display:'flex',flexDirection:'column',height:'100%'}}>
+      <div className="dh" style={{flexShrink:0}}>
         <button className="bb" onClick={()=>setPage('overview')}>←</button>
         <div>
           <div className="dn">{current.nombre}</div>
-          <div className="ds">
-            {[current.meta_ad_account_id&&'Meta Ads',current.fb_page_id&&'Facebook',current.ig_account_id&&'Instagram'].filter(Boolean).join(' · ')||'Sin conexiones'}
-          </div>
+          <div className="ds">{[current.meta_ad_account_id&&'Meta Ads',current.fb_page_id&&'Facebook',current.ig_account_id&&'Instagram'].filter(Boolean).join(' · ')||'Sin conexiones'}</div>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          {(metaLoading||orgLoading)&&<div className="di"/>}
           <button className="bn" onClick={openConfig}>⚙ Módulos</button>
           <button className="bn bp" onClick={()=>{const u=window.location.origin+'/'+current.slug;navigator.clipboard.writeText(u).then(()=>alert('Link copiado: '+u));}}>↗ Compartir</button>
         </div>
       </div>
-
-      {activeTabs.length===0&&<div style={{textAlign:'center',padding:'3rem',color:'var(--f)',fontSize:13}}>
-        <div style={{fontSize:32,marginBottom:12}}>📊</div>
-        No hay módulos activos o no hay conexiones configuradas.<br/>
-        <button className="bn" style={{marginTop:12}} onClick={openConfig}>Configurar módulos</button>
-      </div>}
-
-      {activeTabs.length>0&&<>
-        <div className="tabs">{activeTabs.map(tab=><div key={tab.key} className={`tab${activeTab===tab.key?' ac':''}`} onClick={()=>setActiveTab(tab.key)}>{tab.label}</div>)}</div>
-
-        {activeTab==='resumen'&&<>{metaData?<>
-          <div className="kpi-big">
-            <div className="kpi-box"><div className="kpi-lbl">Alcance</div><div className="kpi-val">{fmt(t.reach)}</div><div className="kpi-sub">personas<Delta v={dl.reach}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Impresiones</div><div className="kpi-val">{fmt(t.impressions)}</div><div className="kpi-sub">total<Delta v={dl.impressions}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Clics</div><div className="kpi-val">{fmt(t.clicks)}</div><div className="kpi-sub">anuncios<Delta v={dl.clicks}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Gasto</div><div className="kpi-val">{fmtMoney(t.spend)}</div><div className="kpi-sub">total<Delta v={dl.spend}/></div></div>
-          </div>
-          <div className="kpi-row">
-            <div className="kpi-box"><div className="kpi-lbl">Frecuencia</div><div className="kpi-val">{t.frequency?t.frequency.toFixed(2):'—'}</div></div>
-            <div className="kpi-box"><div className="kpi-lbl">CPM</div><div className="kpi-val">{fmtMoney(t.cpm)}</div><div className="kpi-sub"><Delta v={dl.cpm}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">CPC</div><div className="kpi-val">{fmtMoney(t.cpc)}</div><div className="kpi-sub"><Delta v={dl.cpc}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">CTR</div><div className="kpi-val">{fmtPct(t.ctr)}</div><div className="kpi-sub"><Delta v={dl.ctr}/></div></div>
-          </div>
-          <div className="wi"><div className="wh"><div className="wt">Clics y Gasto diario</div></div><div className="cw"><canvas ref={chartRef} role="img" aria-label="Meta Ads"/></div></div>
-        </>:<div style={{textAlign:'center',padding:'2rem',color:'var(--f)',fontSize:13}}>Sin datos para el período.</div>}</>}
-
-        {activeTab==='rendimiento'&&<>{metaData?<>
-          <div className="kpi-big">
-            <div className="kpi-box"><div className="kpi-lbl">CTR</div><div className="kpi-val">{fmtPct(t.ctr)}</div><div className="kpi-sub"><Delta v={dl.ctr}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">CPM</div><div className="kpi-val">{fmtMoney(t.cpm)}</div><div className="kpi-sub"><Delta v={dl.cpm}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">CPC</div><div className="kpi-val">{fmtMoney(t.cpc)}</div><div className="kpi-sub"><Delta v={dl.cpc}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Frecuencia</div><div className="kpi-val">{t.frequency?t.frequency.toFixed(2):'—'}</div></div>
-          </div>
-          <div className="wi"><div className="wh"><div className="wt">CTR y CPM diario</div></div><div className="cw"><canvas ref={chartRef} role="img" aria-label="Rendimiento"/></div></div>
-          <div style={{padding:'8px 12px',background:'var(--bg)',borderRadius:8,fontSize:11,color:'var(--f)'}}>Período anterior: CPM {fmtMoney(metaData.totalsPrev?.cpm)} · CPC {fmtMoney(metaData.totalsPrev?.cpc)} · CTR {fmtPct(metaData.totalsPrev?.ctr)}</div>
-        </>:<div style={{textAlign:'center',padding:'2rem',color:'var(--f)',fontSize:13}}>Sin datos.</div>}</>}
-
-        {activeTab==='resultados'&&<>{metaData?<>
-          <div className="kpi-big">
-            <div className="kpi-box"><div className="kpi-lbl">Mensajes</div><div className="kpi-val">{fmt(t.messages)||'0'}</div><div className="kpi-sub"><Delta v={dl.messages}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Leads</div><div className="kpi-val">{fmt(t.leads)||'0'}</div><div className="kpi-sub"><Delta v={dl.leads}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">Compras</div><div className="kpi-val">{fmt(t.purchases)||'0'}</div><div className="kpi-sub"><Delta v={dl.purchases}/></div></div>
-            <div className="kpi-box"><div className="kpi-lbl">ROAS</div><div className="kpi-val">{t.roas?t.roas.toFixed(2)+'x':'—'}</div></div>
-          </div>
-          <div className="wi"><div className="wh"><div className="wt">Mensajes y Leads diario</div></div><div className="cw"><canvas ref={chartRef} role="img" aria-label="Resultados"/></div></div>
-        </>:<div style={{textAlign:'center',padding:'2rem',color:'var(--f)',fontSize:13}}>Sin datos.</div>}</>}
-
-        {activeTab==='campañas'&&<div className="wi">
-          <div className="wh"><div className="wt">Campañas</div><span style={{fontSize:10,color:'var(--f)'}}>{camps.length} campañas</span></div>
-          {camps.length===0?<div style={{textAlign:'center',padding:'1.5rem',color:'var(--f)',fontSize:12}}>Sin datos</div>:
-          <div style={{overflowX:'auto'}}><table className="camp-table">
-            <thead><tr><th>Campaña</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>CPM</th><th>Gasto</th><th>Result.</th></tr></thead>
-            <tbody>{camps.map((c,i)=>{const res=(c.actions||[]).reduce((s,a)=>s+parseInt(a.value||0),0);return(<tr key={i}>
-              <td style={{fontWeight:500,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.campaign_name}</td>
-              <td>{fmt(parseInt(c.impressions||0))}</td><td>{fmt(parseInt(c.clicks||0))}</td>
-              <td>{fmtPct(parseFloat(c.ctr||0))}</td><td>{fmtMoney(parseFloat(c.cpm||0))}</td>
-              <td style={{fontWeight:500}}>{fmtMoney(parseFloat(c.spend||0))}</td>
-              <td>{res>0?<span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:'#E1F5EE',color:'#0F6E56',fontWeight:500}}>{res}</span>:'—'}</td>
-            </tr>);})}
-            </tbody>
-          </table></div>}
-        </div>}
-
-        {activeTab==='facebook'&&<div>
-          {orgLoading&&<div className="di" style={{margin:'2rem auto'}}/>}
-          {!orgLoading&&orgFbData?<>
-            <div className="kpi-big">
-              <div className="kpi-box"><div className="kpi-lbl">Fans</div><div className="kpi-val">{fmt(orgFbData.page?.fan_count)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Alcance orgánico</div><div className="kpi-val">{fmt(orgFbData.totals?.page_reach)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Impresiones org.</div><div className="kpi-val">{fmt(orgFbData.totals?.page_impressions_organic)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Engagement</div><div className="kpi-val">{fmt(orgFbData.totals?.page_engaged_users)}</div></div>
-            </div>
-            <div className="kpi-row">
-              <div className="kpi-box"><div className="kpi-lbl">Nuevos fans</div><div className="kpi-val">{fmt(orgFbData.totals?.page_fan_adds)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Fans perdidos</div><div className="kpi-val">{fmt(orgFbData.totals?.page_fan_removes)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Visitas página</div><div className="kpi-val">{fmt(orgFbData.totals?.page_views_total)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Post engagement</div><div className="kpi-val">{fmt(orgFbData.totals?.page_post_engagements)}</div></div>
-            </div>
-            {orgFbData.posts?.length>0&&<div className="wi">
-              <div className="wh"><div className="wt">Posts recientes</div></div>
-              <div style={{overflowX:'auto'}}><table className="camp-table">
-                <thead><tr><th>Post</th><th>Imp.</th><th>Alcance org.</th><th>Engagement</th><th>Reacciones</th></tr></thead>
-                <tbody>{orgFbData.posts.slice(0,10).map((p,i)=>{const ins=p.insights?.data||[];const gM=name=>{const m=ins.find(x=>x.name===name);return m?.values?.[0]?.value||0;};return(<tr key={i}><td style={{maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:500}}>{p.message?.slice(0,60)||'(sin texto)'}</td><td>{fmt(gM('post_impressions'))}</td><td>{fmt(gM('post_impressions_organic'))}</td><td>{fmt(gM('post_engaged_users'))}</td><td>{fmt(gM('post_reactions_total'))}</td></tr>);})}</tbody>
-              </table></div>
-            </div>}
-          </>:<div style={{textAlign:'center',padding:'2rem',color:'var(--f)',fontSize:13}}>Sin datos de Facebook orgánico.</div>}
-        </div>}
-
-        {activeTab==='instagram'&&<div>
-          {orgLoading&&<div className="di" style={{margin:'2rem auto'}}/>}
-          {!orgLoading&&orgIgData?<>
-            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12,padding:'8px 12px',background:'var(--bg)',borderRadius:10}}>
-              <div><div style={{fontWeight:600}}>@{orgIgData.account?.username||orgIgData.account?.name}</div><div style={{fontSize:11,color:'var(--f)'}}>{fmt(orgIgData.totals?.followers_total)} seguidores</div></div>
-            </div>
-            <div className="kpi-big">
-              <div className="kpi-box"><div className="kpi-lbl">Seguidores</div><div className="kpi-val">{fmt(orgIgData.totals?.followers_total)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Alcance</div><div className="kpi-val">{fmt(orgIgData.totals?.reach)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Impresiones</div><div className="kpi-val">{fmt(orgIgData.totals?.impressions)}</div></div>
-              <div className="kpi-box"><div className="kpi-lbl">Visitas perfil</div><div className="kpi-val">{fmt(orgIgData.totals?.profile_views)}</div></div>
-            </div>
-            {orgIgData.posts?.length>0&&<div className="posts-grid">{orgIgData.posts.slice(0,9).map((p,i)=>{const ins=p.insights?.data||[];const gM=name=>{const m=ins.find(x=>x.name===name);return m?.values?.[0]?.value||0;};return(<div key={i} className="post-card">{(p.media_url||p.thumbnail_url)&&<img src={p.thumbnail_url||p.media_url} className="post-img" alt="post" onError={e=>{e.target.style.display='none';}}/>}<div className="post-body"><div style={{fontSize:11,color:'var(--f)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.caption?.slice(0,50)||'(sin caption)'}</div><div className="post-metric"><span>❤️ {fmt(gM('likes'))}</span><span>💬 {fmt(gM('comments'))}</span><span>👁 {fmt(gM('reach'))}</span></div></div></div>);})}</div>}
-          </>:<div style={{textAlign:'center',padding:'2rem',color:'var(--f)',fontSize:13}}>Sin datos de Instagram.</div>}
-        </div>}
-
-        {activeTab==='mensajes'&&<div className="wi"><div className="wh"><div className="wt">Mensajes</div></div><div style={{textAlign:'center',padding:'1.5rem',color:'var(--f)',fontSize:12}}>Próximamente</div></div>}
-      </>}
+      <iframe
+        key={current.slug}
+        src={'/'+current.slug}
+        style={{flex:1,border:'none',width:'100%',height:'calc(100vh - 52px - 60px)',borderRadius:12,background:'#f8f7f4'}}
+        title={current.nombre}
+      />
     </div>}
   </div>
 </div>
