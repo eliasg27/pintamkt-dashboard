@@ -1,4 +1,4 @@
-import{useEffect,useState,useRef}from'react';import{createClient}from'@supabase/supabase-js';import Head from'next/head';
+import{useEffect,useState,useRef}from'react';import{createClient}from'@supabase/supabase-js';import Head from'next/head';import ClientDashboard from'../components/ClientDashboard';
 const SUPABASE_URL='https://nlouwkcytkmyjexperyt.supabase.co';
 const SUPABASE_KEY='sb_publishable_hIaWxoZnopBtZuaO-hy3eQ_4WAVgHDW';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -206,12 +206,9 @@ return(<><Head><title>Pintamkt</title></Head>
           <button className="bn bp" onClick={()=>{const u=window.location.origin+'/'+current.slug;navigator.clipboard.writeText(u).then(()=>alert('Link copiado: '+u));}}>↗ Compartir</button>
         </div>
       </div>
-      <iframe
-        key={current.slug}
-        src={'/'+current.slug}
-        style={{flex:1,border:'none',width:'100%',height:'calc(100vh - 52px - 60px)',borderRadius:12,background:'#f8f7f4'}}
-        title={current.nombre}
-      />
+      <div style={{flex:1,overflowY:'auto'}}>
+        <ClientDashboard client={current} dateFrom={dateFrom} dateTo={dateTo} />
+      </div>
     </div>}
   </div>
 </div>
