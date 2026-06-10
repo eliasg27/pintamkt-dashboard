@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 
 const DMODS = {
   meta_resumen: true, meta_rendimiento: true, meta_resultados: true, meta_campanas: true,
-  facebook_organico: false, instagram_organico: false, woocommerce: false,
+  facebook_organico: false, instagram_organico: false, woocommerce: false, bot: false,
 };
 
 function fmt(n) { if (!n && n !== 0) return '—'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1000) return (n/1000).toFixed(1)+'K'; return Math.round(n).toString(); }
@@ -43,6 +43,7 @@ function KPI({ label, val, sub, delta, invertDelta }) {
           </span>
         )}
       </div>
+
 
     </div>
   );
@@ -94,10 +95,10 @@ function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, daily
     <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative', overflow: 'visible' }}>
       <div style={{ height: 3, background: color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
       <button className="kpi-menu-btn" onClick={e => { e.stopPropagation(); setOpenMenu(isOpen ? null : id); }}>···</button>
-      <div className={'kpi-dropdown' + (isOpen ? ' open' : '')}>
+      <div className={'kpi-dropdown' + (isOpen ? ' open' : '')} onClick={e => e.stopPropagation()}>
         <div className="kpi-dd-title">Visualización</div>
         {vizOptions.map(o => (
-          <div key={o.key} className={'kpi-dd-item' + (viz === o.key ? ' active' : '')} onClick={() => setViz(id, o.key)}>
+          <div key={o.key} className={'kpi-dd-item' + (viz === o.key ? ' active' : '')} onClick={e => { e.stopPropagation(); setViz(id, o.key); setOpenMenu(null); }}>
             <span style={{ fontSize: 12, width: 16, textAlign: 'center', color: viz === o.key ? color : '#a1a1aa' }}>{o.icon}</span>
             {o.label}
           </div>
@@ -141,13 +142,21 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const [ga4Loading, setGa4Loading] = useState(false);
   const [woo, setWoo] = useState(null);
   const [wooLoading, setWooLoading] = useState(false);
+  const [botData, setBotData] = useState([]);
+  const [botLoading, setBotLoading] = useState(false);
+  const [showBotForm, setShowBotForm] = useState(false);
+  const [botForm, setBotForm] = useState({ period: '', consultas: '', tx: '', contactos: '', facturacion: '' });
   const [tab, setTab] = useState('resumen');
+  const [drillCampaign, setDrillCampaign] = useState(null); // { id, name }
+  const [drillAdset, setDrillAdset] = useState(null); // { id, name }
+  const [drillData, setDrillData] = useState(null);
+  const [drillLoading, setDrillLoading] = useState(false);
   const [vizTypes, setVizTypes] = useState({});
   const [openMenu, setOpenMenu] = useState(null);
   const ref = useRef(null);
   const ci = useRef(null);
 
-  const setViz = (metric, type) => { setVizTypes(p => ({...p, [metric]: type})); setOpenMenu(null); };
+  const setViz = (metric, type) => { setVizTypes(p => { const n = {...p, [metric]: type}; try { localStorage.setItem('pv_'+c?.slug, JSON.stringify(n)); } catch {} return n; }); };
 
   useEffect(() => {
     if (!c) return;
@@ -196,8 +205,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
       fetch(`/api/woocommerce?slug=${c.slug}&since=${df}&until=${dt}`)
         .then(r => r.json()).then(d => { if (!d.error) setWoo(d); }).catch(()=>{}).finally(() => setWooLoading(false));
     }
+    if (mods.bot) {
+      setBotLoading(true);
+      fetch(`/api/manual-data?slug=${c.slug}&type=bot`)
+        .then(r => r.json()).then(d => { if (d.rows) setBotData(d.rows); })
+        .catch(() => {}).finally(() => setBotLoading(false));
+    }
     setTab('resumen');
-  }, [c?.id, df, dt]);
+  }, [c?.id, df, dt, JSON.stringify(c?.modulos)]);
 
   useEffect(() => {
     if (!md?.daily || !ref.current) return;
@@ -239,6 +254,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   if (mods.instagram_organico && c.ig_account_id) tabs.push({ k: 'instagram', l: '📸 Instagram' });
   if (mods.ga4) tabs.push({ k: 'ga4', l: '📊 GA4' });
   if (mods.woocommerce) tabs.push({ k: 'woocommerce', l: '🛒 WooCommerce' });
+  if (mods.bot) tabs.push({ k: 'bot', l: '🤖 Bot' });
 
   const tabKeys = tabs.map(t => t.k);
   const activeTab = tabKeys.includes(tab) ? tab : (tabKeys[0] || 'resumen');
@@ -281,9 +297,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         </div>
  
         {/* TAB: RESUMEN */}
-        {activeTab === 'resumen' && (() => {
-          const anyLoading = metaLoading || igLoading || fbLoading || ga4Loading || wooLoading;
-          return (
+        {activeTab === 'resumen' && (
             <div onClick={() => setOpenMenu(null)}>
 
               {/* META ADS */}
@@ -400,8 +414,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               )}
 
             </div>
-          );
-        })()}
+        )}
 
 
                        {/* TAB: META ADS */}
@@ -476,53 +489,164 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             {/* SECCIÓN: CAMPAÑAS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {(drillData?.campaigns?.length || camps.length)} en el período</span>
+              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {camps.length} en el período</span>
+              {(drillCampaign || drillAdset) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                  <span style={{ color: '#a1a1aa', fontSize: 11 }}>›</span>
+                  <button onClick={() => { setDrillCampaign(null); setDrillAdset(null); setDrillData(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D9E75', fontSize: 11, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>Campañas</button>
+                  {drillCampaign && <><span style={{ color: '#a1a1aa', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: drillAdset ? '#1D9E75' : '#18181b', fontFamily: 'Inter,sans-serif', cursor: drillAdset ? 'pointer' : 'default', fontWeight: 600 }} onClick={() => drillAdset && (setDrillAdset(null), setDrillData(null))}>{drillCampaign.name}</span></>}
+                  {drillAdset && <><span style={{ color: '#a1a1aa', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: '#18181b', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{drillAdset.name}</span></>}
+                </div>
+              )}
             </div>
-            <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-              {camps.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem' }}>
+
+            {/* TABLA CAMPAÑAS */}
+            {!drillCampaign && (
+              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                {camps.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
                     <div style={{ color: '#a1a1aa', fontSize: 13, marginBottom: 12 }}>No se encontraron campañas en este período.</div>
                     <button onClick={() => { setDrillLoading(true); fetch(`/api/meta-drilldown?account_id=${c.meta_ad_account_id}&since=${df}&until=${dt}`).then(r=>r.json()).then(d=>setDrillData(d)).finally(()=>setDrillLoading(false)); }} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Ver todas las campañas</button>
                   </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
-                  <thead>
-                    <tr style={{ background: '#f9f9f8' }}>
-                      {['Campaña', 'Impresiones', 'Clics', 'CTR', 'CPM', 'Gasto', 'Resultados'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const maxSpend = Math.max(...camps.map(c => parseFloat(c.spend || 0)));
-                      return camps.map((camp, i) => {
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                    <thead>
+                      <tr style={{ background: '#f9f9f8' }}>
+                        {['Campaña', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Resultados', ''].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {camps.map((camp, i) => {
                         const res = (camp.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
-                        const spendPct = maxSpend > 0 ? (parseFloat(camp.spend || 0) / maxSpend) * 100 : 0;
                         return (
-                          <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)' }}>
-                            <td style={{ padding: '12px 14px', fontWeight: 500, fontSize: 13, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{camp.campaign_name}</td>
-                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.impressions || 0))}</td>
-                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.clicks || 0))}</td>
-                            <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(camp.ctr || 0))}</span></td>
-                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fm(parseFloat(camp.cpm || 0))}</td>
-                            <td style={{ padding: '12px 14px' }}>
-                              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{fm(parseFloat(camp.spend || 0))}</div>
-                              <div style={{ height: 3, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: spendPct + '%', background: '#1D9E75', borderRadius: 2 }} />
+                          <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)', cursor: 'pointer' }} onClick={() => {
+                            if (!camp.campaign_id) return;
+                            setDrillCampaign({ id: camp.campaign_id, name: camp.campaign_name });
+                            setDrillAdset(null);
+                            setDrillData(null);
+                            setDrillLoading(true);
+                            fetch(`/api/meta-drilldown?campaign_id=${camp.campaign_id}&since=${df}&until=${dt}`)
+                              .then(r => r.json()).then(d => setDrillData(d)).finally(() => setDrillLoading(false));
+                          }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {camp.campaign_name}
                               </div>
                             </td>
                             <td style={{ padding: '12px 14px' }}>
+                              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: camp.status === 'ACTIVE' ? '#dcfce7' : '#f4f4f5', color: camp.status === 'ACTIVE' ? '#15803d' : '#a1a1aa' }}>
+                                {camp.status === 'ACTIVE' ? '● Activa' : '○ Pausada'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.impressions || 0))}</td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(camp.clicks || 0))}</td>
+                            <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(camp.ctr || 0))}</span></td>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13 }}>{fm(parseFloat(camp.spend || 0))}</td>
+                            <td style={{ padding: '12px 14px' }}>
                               {res > 0 ? <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res}</span> : <span style={{ color: '#a1a1aa' }}>—</span>}
                             </td>
+                            <td style={{ padding: '12px 14px', color: '#a1a1aa', fontSize: 12 }}>→</td>
                           </tr>
                         );
-                      });
-                    })()}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* DRILL: AD SETS */}
+            {drillCampaign && !drillAdset && (
+              <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                {drillLoading ? <div style={{ padding: '2rem', textAlign: 'center', color: '#a1a1aa' }}>Cargando ad sets...</div> : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                    <thead>
+                      <tr style={{ background: '#f9f9f8' }}>
+                        {['Ad Set', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Presupuesto', ''].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(drillData?.adsets || []).map((adset, i) => {
+                        const ins = adset.insights || {};
+                        const budget = adset.daily_budget ? `$${Math.round(adset.daily_budget/100).toLocaleString('es-AR')}/día` : adset.lifetime_budget ? `$${Math.round(adset.lifetime_budget/100).toLocaleString('es-AR')} total` : '—';
+                        return (
+                          <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)', cursor: 'pointer' }} onClick={() => {
+                            setDrillAdset({ id: adset.id, name: adset.name });
+                            setDrillData(null);
+                            setDrillLoading(true);
+                            fetch(`/api/meta-drilldown?adset_id=${adset.id}&since=${df}&until=${dt}`)
+                              .then(r => r.json()).then(d => setDrillData(d)).finally(() => setDrillLoading(false));
+                          }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13 }}>{adset.name}</td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: adset.status === 'ACTIVE' ? '#dcfce7' : '#f4f4f5', color: adset.status === 'ACTIVE' ? '#15803d' : '#a1a1aa' }}>
+                                {adset.status === 'ACTIVE' ? '● Activo' : '○ Pausado'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(ins.impressions || 0))}</td>
+                            <td style={{ padding: '12px 14px', fontSize: 13, color: '#3f3f46' }}>{fmt(parseInt(ins.clicks || 0))}</td>
+                            <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(ins.ctr || 0))}</span></td>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13 }}>{fm(parseFloat(ins.spend || 0))}</td>
+                            <td style={{ padding: '12px 14px', fontSize: 12, color: '#71717a' }}>{budget}</td>
+                            <td style={{ padding: '12px 14px', color: '#a1a1aa', fontSize: 12 }}>→</td>
+                          </tr>
+                        );
+                      })}
+                      {!drillLoading && (drillData?.adsets || []).length === 0 && (
+                        <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#a1a1aa', fontSize: 13 }}>Sin ad sets encontrados.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* DRILL: ADS / CREATIVOS */}
+            {drillAdset && (
+              <div style={{ marginBottom: 16 }}>
+                {drillLoading ? <div style={{ padding: '2rem', textAlign: 'center', color: '#a1a1aa' }}>Cargando anuncios...</div> : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12 }}>
+                    {(drillData?.ads || []).map((ad, i) => {
+                      const ins = ad.insights || {};
+                      const img = ad.creative?.image_url || ad.creative?.thumbnail_url;
+                      const res = (ins.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
+                      return (
+                        <div key={i} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+                          {img && <img src={img} alt="" style={{ width: '100%', aspectRatio: '1.91', objectFit: 'cover', display: 'block' }} onError={e => e.target.style.display='none'} />}
+                          {!img && <div style={{ width: '100%', aspectRatio: '1.91', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎨</div>}
+                          <div style={{ padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: ad.status === 'ACTIVE' ? '#dcfce7' : '#f4f4f5', color: ad.status === 'ACTIVE' ? '#15803d' : '#a1a1aa' }}>
+                                {ad.status === 'ACTIVE' ? '● Activo' : '○ Pausado'}
+                              </span>
+                            </div>
+                            <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 600, fontSize: 13, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.name}</div>
+                            {ad.creative?.title && <div style={{ fontSize: 12, color: '#3f3f46', marginBottom: 4, fontWeight: 500 }}>{ad.creative.title}</div>}
+                            {ad.creative?.body && <div style={{ fontSize: 11, color: '#71717a', marginBottom: 10, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ad.creative.body}</div>}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, borderTop: '.5px solid rgba(0,0,0,.06)', paddingTop: 10 }}>
+                              {[['Clics', fmt(parseInt(ins.clicks||0))], ['CTR', fp(parseFloat(ins.ctr||0))], ['Gasto', fm(parseFloat(ins.spend||0))]].map(([l,v]) => (
+                                <div key={l} style={{ textAlign: 'center' }}>
+                                  <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 9, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{l}</div>
+                                  <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 700, fontSize: 13, color: '#18181b' }}>{v}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {res > 0 && <div style={{ marginTop: 8, textAlign: 'center' }}><span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 12px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res} resultados</span></div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {!drillLoading && (drillData?.ads || []).length === 0 && (
+                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: '#a1a1aa', fontSize: 13 }}>Sin anuncios encontrados.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* PERÍODO ANTERIOR */}
             <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -751,6 +875,128 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             </div>
           </>
         )}
+
+        {/* TAB: BOT */}
+        {activeTab === 'bot' && (() => {
+          const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+          const totals = botData.reduce((a, r) => ({
+            consultas: a.consultas + (parseInt(r.data?.consultas) || 0),
+            tx: a.tx + (parseInt(r.data?.tx) || 0),
+            contactos: a.contactos + (parseInt(r.data?.contactos) || 0),
+            facturacion: a.facturacion + (parseFloat(r.data?.facturacion) || 0),
+          }), { consultas: 0, tx: 0, contactos: 0, facturacion: 0 });
+          const tasa = totals.consultas > 0 ? ((totals.tx / totals.consultas) * 100).toFixed(1) : '—';
+          const lastRow = botData[botData.length - 1];
+          const prevRow = botData[botData.length - 2];
+          const delta = (cur, prev) => prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null;
+
+          const saveRow = async () => {
+            if (!botForm.period) return;
+            await fetch(`/api/manual-data?slug=${c.slug}&type=bot`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ period: botForm.period, data: { consultas: parseInt(botForm.consultas)||0, tx: parseInt(botForm.tx)||0, contactos: parseInt(botForm.contactos)||0, facturacion: parseFloat(botForm.facturacion)||0 } })
+            });
+            setBotForm({ period: '', consultas: '', tx: '', contactos: '', facturacion: '' });
+            setShowBotForm(false);
+            setBotLoading(true);
+            fetch(`/api/manual-data?slug=${c.slug}&type=bot`).then(r=>r.json()).then(d=>{if(d.rows)setBotData(d.rows);}).finally(()=>setBotLoading(false));
+          };
+
+          const deleteRow = async (period) => {
+            await fetch(`/api/manual-data?slug=${c.slug}&type=bot`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) });
+            setBotData(prev => prev.filter(r => r.period !== period));
+          };
+
+          return (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#25d366' }} />
+                <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>WhatsApp Bot</span>
+                <button onClick={() => setShowBotForm(!showBotForm)} style={{ marginLeft: 'auto', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>+ Agregar mes</button>
+              </div>
+              {showBotForm && (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '16px', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                  <div>
+                    <div className="kpi-lbl" style={{ marginBottom: 4 }}>Mes</div>
+                    <select value={botForm.period} onChange={e => setBotForm(p => ({...p, period: e.target.value}))} style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontFamily: 'Inter,sans-serif', fontSize: 12 }}>
+                      <option value="">Seleccionar</option>
+                      {months.map((m, i) => <option key={m} value={`2026-${String(i+1).padStart(2,'0')}`}>{m} 2026</option>)}
+                    </select>
+                  </div>
+                  {[['consultas','Consultas Bot'],['tx','TX Bot'],['contactos','Total Contactos'],['facturacion','Facturación $']].map(([k,l]) => (
+                    <div key={k}>
+                      <div className="kpi-lbl" style={{ marginBottom: 4 }}>{l}</div>
+                      <input type="number" value={botForm[k]} onChange={e => setBotForm(p => ({...p, [k]: e.target.value}))} placeholder="0" style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontFamily: 'Inter,sans-serif', fontSize: 12 }} />
+                    </div>
+                  ))}
+                  <button onClick={saveRow} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Guardar</button>
+                </div>
+              )}
+              {botData.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
+                  <KpiCard id="bot_consultas" label="Consultas Bot" val={fmt(lastRow?.data?.consultas)} sub="último mes" delta={lastRow&&prevRow?delta(lastRow.data?.consultas,prevRow.data?.consultas):null} invertDelta={false} color="#25d366" defViz="number" dailyData={botData.map(r=>r.data?.consultas||0)} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                  <KpiCard id="bot_tx" label="TX Bot" val={fmt(lastRow?.data?.tx)} sub="transacciones" delta={lastRow&&prevRow?delta(lastRow.data?.tx,prevRow.data?.tx):null} invertDelta={false} color="#128c7e" defViz="bars" dailyData={botData.map(r=>r.data?.tx||0)} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                  <KpiCard id="bot_contactos" label="Total Contactos" val={fmt(lastRow?.data?.contactos)} sub="último mes" delta={lastRow&&prevRow?delta(lastRow.data?.contactos,prevRow.data?.contactos):null} invertDelta={false} color="#075e54" defViz="spark" dailyData={botData.map(r=>r.data?.contactos||0)} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                  <KpiCard id="bot_facturacion" label="Facturación" val={lastRow?.data?.facturacion ? '$'+Math.round(lastRow.data.facturacion).toLocaleString('es-AR') : '—'} sub="último mes" delta={lastRow&&prevRow?delta(lastRow.data?.facturacion,prevRow.data?.facturacion):null} invertDelta={false} color="#25d366" defViz="number" dailyData={botData.map(r=>r.data?.facturacion||0)} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                  <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                    <div style={{ height: 3, background: '#25d366', borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                    <div className="kpi-lbl">Tasa conversión</div>
+                    <div className="kpi-val">{tasa}{tasa !== '—' ? '%' : ''}</div>
+                    <div className="kpi-sub">TX / Consultas</div>
+                  </div>
+                </div>
+              )}
+              {botData.length > 0 ? (
+                <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                    <thead>
+                      <tr style={{ background: '#f9f9f8' }}>
+                        {['Mes','Consultas Bot','TX Bot','Total Contactos','Facturación','Tasa Conv.',''].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {botData.map((row, i) => {
+                        const t = ((row.data?.tx||0)/(row.data?.consultas||1)*100).toFixed(1);
+                        const mName = months[parseInt(row.period?.slice(5,7))-1] || row.period;
+                        return (
+                          <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)' }}>
+                            <td style={{ padding: '11px 14px', fontWeight: 600, fontSize: 13 }}>{mName}</td>
+                            <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(row.data?.consultas)}</td>
+                            <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(row.data?.tx)}</td>
+                            <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(row.data?.contactos)}</td>
+                            <td style={{ padding: '11px 14px', fontSize: 13 }}>{row.data?.facturacion ? '$'+Math.round(row.data.facturacion).toLocaleString('es-AR') : '—'}</td>
+                            <td style={{ padding: '11px 14px' }}><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{t}%</span></td>
+                            <td style={{ padding: '11px 14px', display: 'flex', gap: 6 }}>
+                              <button onClick={() => { setBotForm({ period: row.period, consultas: String(row.data?.consultas||''), tx: String(row.data?.tx||''), contactos: String(row.data?.contactos||''), facturacion: String(row.data?.facturacion||'') }); setShowBotForm(true); window.scrollTo(0,0); }} style={{ background:'none', border:'none', cursor:'pointer', color:'#a1a1aa', fontSize:14 }} title="Editar">✏️</button>
+                              <button onClick={()=>deleteRow(row.period)} style={{ background:'none', border:'none', cursor:'pointer', color:'#e5e7eb', fontSize:16 }} title="Eliminar">✕</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr style={{ background: '#f9f9f8', fontWeight: 700 }}>
+                        <td style={{ padding: '11px 14px', fontSize: 13 }}>TOTAL</td>
+                        <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(totals.consultas)}</td>
+                        <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(totals.tx)}</td>
+                        <td style={{ padding: '11px 14px', fontSize: 13 }}>{fmt(totals.contactos)}</td>
+                        <td style={{ padding: '11px 14px', fontSize: 13, fontWeight: 700 }}>{totals.facturacion > 0 ? '$'+Math.round(totals.facturacion).toLocaleString('es-AR') : '—'}</td>
+                        <td style={{ padding: '11px 14px' }}><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{tasa}{tasa!=='—'?'%':''}</span></td>
+                        <td />
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : botLoading ? <Spinner /> : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#a1a1aa', fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
+                  No hay datos todavía.<br />
+                  <button onClick={()=>setShowBotForm(true)} style={{ marginTop: 12, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>+ Agregar primer mes</button>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
     </div>
   );
