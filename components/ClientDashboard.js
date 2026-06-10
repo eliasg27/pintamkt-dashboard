@@ -476,11 +476,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             {/* SECCIÓN: CAMPAÑAS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {camps.length} en el período</span>
+              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {(drillData?.campaigns?.length || camps.length)} en el período</span>
             </div>
             <div style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
               {camps.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#a1a1aa', fontSize: 13 }}>Sin campañas en el período.</div>
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div style={{ color: '#a1a1aa', fontSize: 13, marginBottom: 12 }}>No se encontraron campañas en este período.</div>
+                    <button onClick={() => { setDrillLoading(true); fetch(`/api/meta-drilldown?account_id=${c.meta_ad_account_id}&since=${df}&until=${dt}`).then(r=>r.json()).then(d=>setDrillData(d)).finally(()=>setDrillLoading(false)); }} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Ver todas las campañas</button>
+                  </div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
                   <thead>
