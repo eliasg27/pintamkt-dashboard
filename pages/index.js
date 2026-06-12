@@ -27,7 +27,7 @@ function today(){return fmtDate(new Date());}
 function Delta({v}){if(v===null||v===undefined)return null;const up=v>=0;return<span style={{fontSize:10,padding:'1px 6px',borderRadius:20,background:up?'#E1F5EE':'#FBEAEA',color:up?'#0F6E56':'#A32D2D',marginLeft:6}}>{up?'↑':'↓'}{Math.abs(v)}%</span>;}
 
 export default function Dashboard(){
-const[darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('pintamkt_dark')==='1';}catch{return false;}});
+const[darkMode,setDarkMode]=useState(false);
 const[clientes,setClientes]=useState([]);
 const[current,setCurrent]=useState(null);
 const[page,setPage]=useState('overview');
@@ -47,6 +47,7 @@ const[activeTab,setActiveTab]=useState('resumen');
 const chartRef=useRef(null);
 const chartInst=useRef(null);
 
+useEffect(()=>{try{setDarkMode(localStorage.getItem('pintamkt_dark')==='1');}catch{}},[]);
 useEffect(()=>{load();},[]);
 useEffect(()=>{
   if(!current)return;

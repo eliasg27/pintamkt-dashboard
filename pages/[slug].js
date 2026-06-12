@@ -162,9 +162,10 @@ export default function ClientePage() {
   const [metaLoading, setMetaLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
-  const [vizTypes, setVizTypes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pintamkt_viz_' + (typeof window !== 'undefined' ? window.location.pathname : '')) || '{}'); } catch { return {}; }
-  });
+  const [vizTypes, setVizTypes] = useState({});
+  useEffect(() => {
+    try { setVizTypes(JSON.parse(localStorage.getItem('pintamkt_viz_' + window.location.pathname) || '{}')); } catch {}
+  }, []);
   const [openMenu, setOpenMenu] = useState(null);
 
   const setViz = (metric, type) => {
