@@ -86,13 +86,14 @@ export default async function handler(req, res) {
         'shares', 'saves', 'website_clicks', 'follows_and_unfollows',
       ].join(',');
 
-      const [rI, rMedia, rAccount] = await Promise.all([
+      const [rI, rMedia, rAccount, rFollowers] = await Promise.all([
         fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${igSinceDate}&until=${igUntilDate}&limit=12&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`)
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=follower_count&period=day&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`)
       ]);
 
-      const [dI, dMedia, dAccount] = await Promise.all([rI.json(), rMedia.json(), rAccount.json()]);
+      const [dI, dMedia, dAccount, dFollowers] = await Promise.all([rI.json(), rMedia.json(), rAccount.json(), rFollowers.json()]);
 
       if (dI.error) {
         console.error('IG Insights error:', JSON.stringify(dI.error));
@@ -104,6 +105,14 @@ export default async function handler(req, res) {
         totals[m.name] = m.total_value?.value ?? 0;
       });
       totals.followers_total = dAccount.followers_count || 0;
+
+      // Calcular ganancia neta de seguidores: suma de valores diarios (follower_count es delta diario)
+      let netFollowers = null;
+      const followerValues = dFollowers.data?.[0]?.values || [];
+      if (followerValues.length > 0) {
+        netFollowers = followerValues.reduce((sum, v) => sum + (v.value || 0), 0);
+      }
+      totals.net_followers = netFollowers;
 
       return res.json({
         type: 'instagram',
