@@ -86,11 +86,24 @@ export default async function handler(req, res) {
         'shares', 'saves', 'website_clicks', 'follows_and_unfollows',
       ].join(',');
 
+      // follower_count solo soporta últimos 30 días excluyendo hoy
+      const today = new Date();
+      const maxUntil = new Date(today); maxUntil.setDate(maxUntil.getDate() - 1);
+      const minSince = new Date(today); minSince.setDate(minSince.getDate() - 30);
+      const reqSince = new Date(igSinceDate);
+      const reqUntil = new Date(igUntilDate);
+      const fcSince = (reqSince < minSince ? minSince : reqSince).toISOString().slice(0,10);
+      const fcUntilDate = (reqUntil > maxUntil ? maxUntil : reqUntil);
+      const fcUntil = fcUntilDate.toISOString().slice(0,10);
+      const fcRangeValid = new Date(fcSince) <= fcUntilDate;
+
       const [rI, rMedia, rAccount, rFollowers] = await Promise.all([
         fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${igSinceDate}&until=${igUntilDate}&limit=12&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=follower_count&period=day&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`)
+        fcRangeValid
+          ? fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=follower_count&period=day&since=${fcSince}&until=${fcUntil}&access_token=${token}`)
+          : Promise.resolve({ json: async () => ({ data: [] }) })
       ]);
 
       const [dI, dMedia, dAccount, dFollowers] = await Promise.all([rI.json(), rMedia.json(), rAccount.json(), rFollowers.json()]);
