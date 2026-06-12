@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!account_id) {
     try {
       const r = await fetch(
-        `https://graph.facebook.com/v19.0/me/adaccounts?fields=name,account_id,currency,account_status,amount_spent&access_token=${token}`
+        `https://graph.facebook.com/v21.0/me/adaccounts?fields=name,account_id,currency,account_status,amount_spent&access_token=${token}`
       );
       const d = await r.json();
       if (d.error) return res.status(400).json({ error: d.error.message });
@@ -36,24 +36,28 @@ export default async function handler(req, res) {
   try {
     const [rDaily, rCampaigns, rPrev] = await Promise.all([
       fetch(
-        `https://graph.facebook.com/v19.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${account_id}/insights` +
         `?fields=impressions,clicks,spend,reach,cpm,cpc,ctr,frequency,actions` +
         `&time_range=${timeRange}&time_increment=1&access_token=${token}`
       ),
       fetch(
-        `https://graph.facebook.com/v19.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${account_id}/insights` +
         `?fields=campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
         `&time_range=${timeRange}&level=campaign&limit=50&access_token=${token}`
       ),
       fetch(
-        `https://graph.facebook.com/v19.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${account_id}/insights` +
         `?fields=impressions,clicks,spend,reach,actions` +
         `&time_range=${timeRangePrev}&time_increment=1&access_token=${token}`
       ),
     ]);
 
+    const safeJson = async (r) => {
+      const text = await r.text();
+      try { return JSON.parse(text); } catch { return { error: { message: `Non-JSON response (status ${r.status}): ${text.slice(0,200)}` } }; }
+    };
     const [dDaily, dCampaigns, dPrev] = await Promise.all([
-      rDaily.json(), rCampaigns.json(), rPrev.json()
+      safeJson(rDaily), safeJson(rCampaigns), safeJson(rPrev)
     ]);
 
     if (dDaily.error) return res.status(400).json({ error: dDaily.error.message });
