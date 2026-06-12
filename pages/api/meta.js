@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       ),
       fetch(
         `https://graph.facebook.com/v19.0/${account_id}/insights` +
-        `?fields=campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
+        `?fields=campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
         `&time_range=${timeRange}&level=campaign&limit=50&access_token=${token}`
       ),
       fetch(
