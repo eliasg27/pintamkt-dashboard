@@ -340,7 +340,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                       </div>
                       {ig ? (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-                          {[['Seguidores', (ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows ?? 0) >= 0 ? '+'+fmt(ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows) : fmt(ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows)],['Alcance', fmt(ig.totals?.reach)],['Interacciones', fmt(ig.totals?.total_interactions)],['Visitas perfil', fmt(ig.totals?.profile_views)]].map(([l,v]) => (
+                          {[['Seguidores', (() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows; return (nf === null || nf === undefined) ? '—' : (nf >= 0 ? '+'+fmt(nf) : fmt(nf)); })()],['Alcance', fmt(ig.totals?.reach)],['Interacciones', fmt(ig.totals?.total_interactions)],['Visitas perfil', fmt(ig.totals?.profile_views)]].map(([l,v]) => (
                             <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 18, fontWeight: 700, color: '#18181b' }}>{v||'—'}</div></div>
                           ))}
                         </div>
@@ -724,7 +724,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Instagram Orgánico</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="ig_followers" label="Seguidores nuevos" val={(() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows ?? 0; return (nf >= 0 ? '+' : '') + fmt(nf); })()} sub={`total cuenta: ${fmt(ig.account?.followers_count)}`} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_followers" label="Seguidores nuevos" val={(() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows; return (nf === null || nf === undefined) ? '—' : (nf >= 0 ? '+'+fmt(nf) : fmt(nf)); })()} sub={`total cuenta: ${fmt(ig.account?.followers_count)}`} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" delta={ig.deltas?.reach} invertDelta={false} color="#e1306c" defViz="spark" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" delta={ig.deltas?.total_interactions} invertDelta={false} color="#f09433" defViz="bars" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" delta={ig.deltas?.profile_views} invertDelta={false} color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
