@@ -159,6 +159,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const setViz = (metric, type) => { setVizTypes(p => { const n = {...p, [metric]: type}; try { localStorage.setItem('pv_'+c?.slug, JSON.stringify(n)); } catch {} return n; }); };
 
   useEffect(() => {
+    console.log('[DEBUG] effect fired', { c: c?.id, df, dt, mods: c?.modulos });
     if (!c) return;
     const mods = { ...DMODS, ...(c.modulos || {}) };
     if ((mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) && c.meta_ad_account_id) {
