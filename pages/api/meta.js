@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       safeJson(rDaily), safeJson(rCampaigns), safeJson(rPrev)
     ]);
 
-    if (dDaily.error) return res.status(400).json({ error: dDaily.error.message });
+    if (dDaily.error) return res.status(400).json({ error: dDaily.error.message || dDaily.error, _full: dDaily.error });
 
     const rows = dDaily.data || [];
     const camps = dCampaigns.data || [];
