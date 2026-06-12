@@ -151,8 +151,8 @@ export default function ClientePage() {
   const { slug } = useRouter().query;
   const [c, setC] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [df, setDf] = useState(ago(30));
-  const [dt, setDt] = useState(hoy());
+  const [df, setDf] = useState('');
+  const [dt, setDt] = useState('');
   const [md, setMd] = useState(null);
   const [fb, setFb] = useState(null);
   const [ig, setIg] = useState(null);
@@ -179,6 +179,11 @@ export default function ClientePage() {
  
   // Cargar cliente desde Supabase — IDs vienen del row, no de dicts hardcodeados
   useEffect(() => {
+    setDf(ago(30));
+    setDt(hoy());
+  }, []);
+
+  useEffect(() => {
     if (!slug) return;
     sb.from('clientes')
       .select('*')
@@ -193,7 +198,7 @@ export default function ClientePage() {
  
   // Cargar datos de APIs cuando el cliente ya está cargado
   useEffect(() => {
-    if (!c) return;
+    if (!c || !df || !dt) return;
     const mods = { ...DMODS, ...(c.modulos || {}) };
  
     // META ADS — usa c.meta_ad_account_id directo de Supabase

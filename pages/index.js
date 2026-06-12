@@ -31,8 +31,8 @@ const[darkMode,setDarkMode]=useState(false);
 const[clientes,setClientes]=useState([]);
 const[current,setCurrent]=useState(null);
 const[page,setPage]=useState('overview');
-const[dateFrom,setDateFrom]=useState(ago(30));
-const[dateTo,setDateTo]=useState(today());
+const[dateFrom,setDateFrom]=useState('');
+const[dateTo,setDateTo]=useState('');
 const[metaData,setMetaData]=useState(null);
 const[metaLoading,setMetaLoading]=useState(false);
 const[orgFbData,setOrgFbData]=useState(null);
@@ -47,10 +47,10 @@ const[activeTab,setActiveTab]=useState('resumen');
 const chartRef=useRef(null);
 const chartInst=useRef(null);
 
-useEffect(()=>{try{setDarkMode(localStorage.getItem('pintamkt_dark')==='1');}catch{}},[]);
+useEffect(()=>{try{setDarkMode(localStorage.getItem('pintamkt_dark')==='1');}catch{};setDateFrom(ago(30));setDateTo(today());},[]);
 useEffect(()=>{load();},[]);
 useEffect(()=>{
-  if(!current)return;
+  if(!current||!dateFrom||!dateTo)return;
   if(current.meta_ad_account_id)loadMetaData();
   if(current.fb_page_id||current.ig_account_id)loadOrganic();
 },[current,dateFrom,dateTo]);
