@@ -113,6 +113,7 @@ export default async function handler(req, res) {
         netFollowers = followerValues.reduce((sum, v) => sum + (v.value || 0), 0);
       }
       totals.net_followers = netFollowers;
+      if (req.query.debug) totals._followers_debug = dFollowers;
 
       return res.json({
         type: 'instagram',
