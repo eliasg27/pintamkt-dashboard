@@ -33,20 +33,22 @@ export default async function handler(req, res) {
   const timeRange = encodeURIComponent(JSON.stringify({since: s, until: u}));
   const timeRangePrev = encodeURIComponent(JSON.stringify({since: sPrev, until: uPrev}));
 
+  const acctId = account_id.startsWith('act_') ? account_id : `act_${account_id}`;
+
   try {
     const [rDaily, rCampaigns, rPrev] = await Promise.all([
       fetch(
-        `https://graph.facebook.com/v21.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${acctId}/insights` +
         `?fields=impressions,clicks,spend,reach,cpm,cpc,ctr,frequency,actions` +
         `&time_range=${timeRange}&time_increment=1&access_token=${token}`
       ),
       fetch(
-        `https://graph.facebook.com/v21.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${acctId}/insights` +
         `?fields=campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
         `&time_range=${timeRange}&level=campaign&limit=50&access_token=${token}`
       ),
       fetch(
-        `https://graph.facebook.com/v21.0/${account_id}/insights` +
+        `https://graph.facebook.com/v21.0/${acctId}/insights` +
         `?fields=impressions,clicks,spend,reach,actions` +
         `&time_range=${timeRangePrev}&time_increment=1&access_token=${token}`
       ),
