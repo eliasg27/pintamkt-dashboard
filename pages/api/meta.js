@@ -30,8 +30,8 @@ export default async function handler(req, res) {
   const sPrev = prevSince.toISOString().slice(0, 10);
   const uPrev = prevUntil.toISOString().slice(0, 10);
 
-  const timeRange = `{"since":"${s}","until":"${u}"}`;
-  const timeRangePrev = `{"since":"${sPrev}","until":"${uPrev}"}`;
+  const timeRange = encodeURIComponent(JSON.stringify({since: s, until: u}));
+  const timeRangePrev = encodeURIComponent(JSON.stringify({since: sPrev, until: uPrev}));
 
   try {
     const [rDaily, rCampaigns, rPrev] = await Promise.all([
