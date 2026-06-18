@@ -159,6 +159,16 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const setViz = (metric, type) => { setVizTypes(p => { const n = {...p, [metric]: type}; try { localStorage.setItem('pv_'+c?.slug, JSON.stringify(n)); } catch {} return n; }); };
 
   useEffect(() => {
+    if (!c?.slug) return;
+    try {
+      const stored = localStorage.getItem('pv_'+c.slug);
+      if (stored) setVizTypes(JSON.parse(stored));
+    } catch (e) {
+      console.warn('Failed to load viz prefs:', e);
+    }
+  }, [c?.slug]);
+
+  useEffect(() => {
     if (!c) return;
     const mods = { ...DMODS, ...(c.modulos || {}) };
     if ((mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) && c.meta_ad_account_id) {

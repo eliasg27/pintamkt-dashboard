@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(
-  'https://nlouwkcytkmyjexperyt.supabase.co',
-  'sb_publishable_hIaWxoZnopBtZuaO-hy3eQ_4WAVgHDW'
+  'https://tjpwiwtwapxspdtmvjbo.supabase.co',
+  'sb_publishable_ohJwV9nzUdZSopJ6TTzkVQ_VTru9TVp'
 );
 
 async function getAccessToken(credentials) {

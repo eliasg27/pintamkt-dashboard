@@ -1,6 +1,6 @@
 import{useEffect,useState,useRef}from'react';import{createClient}from'@supabase/supabase-js';import Head from'next/head';import ClientDashboard from'../components/ClientDashboard';
-const SUPABASE_URL='https://nlouwkcytkmyjexperyt.supabase.co';
-const SUPABASE_KEY='sb_publishable_hIaWxoZnopBtZuaO-hy3eQ_4WAVgHDW';
+const SUPABASE_URL='https://tjpwiwtwapxspdtmvjbo.supabase.co';
+const SUPABASE_KEY='sb_publishable_ohJwV9nzUdZSopJ6TTzkVQ_VTru9TVp';
 const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const ALL_MODULES=[

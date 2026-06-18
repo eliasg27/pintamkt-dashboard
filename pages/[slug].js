@@ -5,8 +5,8 @@ import Head from 'next/head';
 import ClientDashboard from '../components/ClientDashboard';
 
 const sb = createClient(
-  'https://nlouwkcytkmyjexperyt.supabase.co',
-  'sb_publishable_hIaWxoZnopBtZuaO-hy3eQ_4WAVgHDW'
+  'https://tjpwiwtwapxspdtmvjbo.supabase.co',
+  'sb_publishable_ohJwV9nzUdZSopJ6TTzkVQ_VTru9TVp'
 );
 
 function fd(d) { return d.toISOString().slice(0, 10); }
