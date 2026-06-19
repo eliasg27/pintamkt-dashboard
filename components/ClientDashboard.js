@@ -120,7 +120,7 @@ function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, daily
             <text x="26" y="30" textAnchor="middle" fontSize="10" fontWeight="700" fill="#18181b">80%</text>
           </svg>
           <div>
-            <div style={{ fontSize: 10, color: 'var(--m)', fontFamily: 'Inter, sans-serif' }}>del presupuesto</div>
+            <div style={{ fontSize: 10, color: 'var(--m)' }}>del presupuesto</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t)' }}>{val} / $480K</div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const [botLoading, setBotLoading] = useState(false);
   const [showBotForm, setShowBotForm] = useState(false);
   const [botForm, setBotForm] = useState({ period: '', consultas: '', tx: '', contactos: '', facturacion: '' });
-  const [tab, setTab] = useState('resumen');
+  const [tab, setTab] = useState('metaads');
   const [drillCampaign, setDrillCampaign] = useState(null); // { id, name }
   const [drillAdset, setDrillAdset] = useState(null); // { id, name }
   const [drillData, setDrillData] = useState(null);
@@ -211,7 +211,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         .then(r => r.json()).then(d => { if (d.rows) setBotData(d.rows); })
         .catch(() => {}).finally(() => setBotLoading(false));
     }
-    setTab('resumen');
+    setTab('metaads');
   }, [c?.id, df, dt, JSON.stringify(c?.modulos)]);
 
   useEffect(() => {
@@ -248,7 +248,6 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const camps = md?.campaigns || [];
 
   const tabs = [];
-  tabs.push({ k: 'resumen', l: 'Resumen' });
   if (mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) tabs.push({ k: 'metaads', l: 'Meta Ads' });
   if (mods.facebook_organico && c.fb_page_id) tabs.push({ k: 'facebook', l: '📘 Facebook' });
   if (mods.instagram_organico && c.ig_account_id) tabs.push({ k: 'instagram', l: '📸 Instagram' });
@@ -267,26 +266,32 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   );
 
   return (
-    <div onClick={() => setOpenMenu(null)} style={{ fontFamily: "'DM Sans', -apple-system, sans-serif", background: 'var(--bg)', minHeight: '100%', padding: '1.5rem' }}>
-      <style>{`
-        .kpi-lbl { font-family: 'Inter', sans-serif; font-size: 10px; color: var(--m); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 5px; }
-        .kpi-val { font-family: 'DM Sans', sans-serif; font-size: 28px; font-weight: 700; color: var(--t); letter-spacing: -.03em; line-height: 1; }
-        .kpi-sub { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--m); margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+    <div onClick={() => setOpenMenu(null)} style={{ fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif", background: 'var(--bg)', minHeight: '100%', padding: '1.5rem' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .kpi-lbl { font-size: 10px; color: var(--m); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 5px; }
+        .kpi-val { font-size: 25px; font-weight: 700; color: var(--t); letter-spacing: -.02em; line-height: 1; }
+        .kpi-sub { font-size: 11px; color: var(--m); margin-top: 5px; display: flex; align-items: center; gap: 6px; }
         .kpi-badge-up { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #dcfce7; color: #15803d; }
         .kpi-badge-dn { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: #fee2e2; color: #dc2626; }
         .kpi-menu-btn { position: absolute; top: 8px; right: 8px; width: 24px; height: 20px; border: none; background: none; cursor: pointer; color: var(--m); font-size: 13px; font-weight: 800; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; border-radius: 5px; padding: 0; transition: background .15s, color .15s; }
         .kpi-menu-btn:hover { background: var(--bg); color: var(--t); }
         .kpi-dropdown { display: none; position: absolute; top: 30px; right: 8px; background: var(--s); border: .5px solid var(--bm); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 200; min-width: 140px; overflow: hidden; }
         .kpi-dropdown.open { display: block; }
-        .kpi-dd-title { font-size: 9px; color: var(--m); text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px 4px; font-family: 'Inter', sans-serif; font-weight: 600; }
+        .kpi-dd-title { font-size: 9px; color: var(--m); text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px 4px; font-weight: 600; }
         .kpi-dd-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 12px; color: var(--t); cursor: pointer; transition: background .1s; }
         .kpi-dd-item:hover { background: var(--bg); }
         .kpi-dd-item.active { color: #1D9E75; font-weight: 600; }
         .sect-hdr { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
         .sect-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .sect-title { font-size: 10px; font-weight: 600; color: var(--m); text-transform: uppercase; letter-spacing: .08em; font-family: 'Inter', sans-serif; }
+        .sect-title { font-size: 10px; font-weight: 600; color: var(--m); text-transform: uppercase; letter-spacing: .08em; }
+        .ig-stat-value--below { flex-direction: column; align-items: flex-start !important; gap: 3px !important; min-height: 38px !important; }
+        @media (max-width: 600px) {
+          .ig-summary-stats { column-gap: 10px !important; }
+          .ig-stat-value { flex-direction: column; align-items: flex-start !important; gap: 3px !important; min-height: 38px !important; }
+          .ig-stat-delta { white-space: nowrap; }
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      ` }} />
 
       {/* TOP CARDS */}
       {(()=>{
@@ -312,8 +317,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   Salud de la cuenta
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{opacity:.5,flexShrink:0}}><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1"/><path d="M6 5v3M6 3.5h.01" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
                 </div>
-                <div style={{fontSize:38,fontWeight:800,letterSpacing:'-.03em',lineHeight:1,color:'var(--t)'}}>
-                  {health}<span style={{fontSize:16,fontWeight:600,color:'var(--m)'}}>/100</span>
+                <div style={{fontSize:30,fontWeight:700,letterSpacing:'-.02em',lineHeight:1,color:'var(--t)'}}>
+                  {health}<span style={{fontSize:14,fontWeight:600,color:'var(--m)'}}>/100</span>
                 </div>
                 <div style={{fontSize:13,fontWeight:700,color:hc,marginTop:6}}>{hlabel}</div>
               </div>
@@ -346,31 +351,76 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         );
       })()}
 
-      {/* 4 KPI CARDS */}
+      {/* 4 KPI CARDS + INSIGHTS + CHART */}
       {(()=>{
         const Spark=({data,color})=>{
+          const [hov,setHov]=useState(null);
           if(!data?.length||data.every(v=>v===0))return null;
           const mx=Math.max(...data)||1,mn=Math.min(...data),rng=mx-mn||1,n=data.length;
           const pts=data.map((v,i)=>`${(i/(n-1))*100},${90-((v-mn)/rng)*80}`).join(' ');
           const gid='g'+color.replace(/[^a-z0-9]/g,'');
+          const onMove=(e)=>{const r=e.currentTarget.getBoundingClientRect();setHov(Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*(n-1)))));};
+          const hx=hov!=null?(hov/(n-1))*100:null;
+          const hy=hov!=null?90-((data[hov]-mn)/rng)*80:null;
+          const tipX=hov!=null?Math.min(Math.max(hx,14),86):0;
           return(
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:'100%',height:48,display:'block',marginTop:10}}>
-              <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity=".18"/>
-                <stop offset="100%" stopColor={color} stopOpacity="0"/>
-              </linearGradient></defs>
-              <polygon points={pts+` 100,95 0,95`} fill={`url(#${gid})`}/>
-              <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <div style={{position:'relative',height:48,marginTop:10,cursor:'crosshair'}}
+              onMouseMove={onMove} onMouseLeave={()=>setHov(null)}>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:'100%',height:'100%',display:'block'}}>
+                <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity=".12"/>
+                  <stop offset="100%" stopColor={color} stopOpacity="0"/>
+                </linearGradient></defs>
+                <polygon points={pts+` 100,95 0,95`} fill={`url(#${gid})`}/>
+                <polyline points={pts} fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/>
+                {hov!=null&&<>
+                  <line x1={hx} y1="5" x2={hx} y2="90" stroke={color} strokeWidth=".8" strokeDasharray="2,2" opacity=".5"/>
+                  <circle cx={hx} cy={hy} r="3.5" fill={color} stroke="white" strokeWidth="1.5"/>
+                </>}
+              </svg>
+              {hov!=null&&(
+                <div style={{position:'absolute',left:`${tipX}%`,top:0,transform:'translateX(-50%)',background:'rgba(20,20,18,.9)',color:'#fff',borderRadius:5,padding:'5px 7px',fontSize:10,fontWeight:700,lineHeight:1.15,pointerEvents:'none',boxShadow:'0 4px 12px rgba(0,0,0,.18)',zIndex:3,minWidth:42}}>
+                  <div style={{fontSize:10,opacity:.85,marginBottom:3}}>{hov+1}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+                    <span style={{width:8,height:8,borderRadius:2,background:color,display:'inline-block',boxShadow:'0 0 0 1px rgba(255,255,255,.8)'}}/>
+                    {fmt(data[hov])}
+                  </div>
+                </div>
+              )}
+            </div>
           );
         };
         const Bars=({data,color})=>{
+          const [hov,setHov]=useState(null);
           if(!data?.length||data.every(v=>v===0))return null;
           const mx=Math.max(...data)||1,w=100/data.length;
+          const onMove=(e)=>{const r=e.currentTarget.getBoundingClientRect();setHov(Math.max(0,Math.min(data.length-1,Math.floor((e.clientX-r.left)/r.width*data.length))));};
           return(
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:'100%',height:48,display:'block',marginTop:10}}>
-              {data.map((v,i)=><rect key={i} x={i*w+.5} y={100-(v/mx)*90} width={w-1.5} height={(v/mx)*90} rx="1.5" fill={color} opacity=".8"/>)}
-            </svg>
+            <div style={{position:'relative',height:48,marginTop:10,cursor:'crosshair'}}
+              onMouseMove={onMove} onMouseLeave={()=>setHov(null)}>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:'100%',height:'100%',display:'block'}}>
+                {data.map((v,i)=><rect key={i} x={i*w+.5} y={100-(v/mx)*90} width={w-1.5} height={(v/mx)*90} rx="1.5" fill={color} opacity={hov===i?1:.75}/>)}
+                {hov!=null&&(()=>{
+                  const bx=hov*w+w/2;
+                  return<>
+                    <line x1={bx} y1="5" x2={bx} y2="95" stroke={color} strokeWidth=".8" strokeDasharray="2,2" opacity=".45"/>
+                  </>;
+                })()}
+              </svg>
+              {hov!=null&&(()=>{
+                const bx=hov*w+w/2;
+                const tipX=Math.min(Math.max(bx,14),86);
+                return(
+                  <div style={{position:'absolute',left:`${tipX}%`,top:0,transform:'translateX(-50%)',background:'rgba(20,20,18,.9)',color:'#fff',borderRadius:5,padding:'5px 7px',fontSize:10,fontWeight:700,lineHeight:1.15,pointerEvents:'none',boxShadow:'0 4px 12px rgba(0,0,0,.18)',zIndex:3,minWidth:42}}>
+                    <div style={{fontSize:10,opacity:.85,marginBottom:3}}>{hov+1}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+                      <span style={{width:8,height:8,borderRadius:2,background:color,display:'inline-block',boxShadow:'0 0 0 1px rgba(255,255,255,.8)'}}/>
+                      {fmt(data[hov])}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           );
         };
         const Donut=({spend})=>{
@@ -401,49 +451,355 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           {label:'Gasto',val:fm(t.spend)||'—',sub:'total USD',delta:dl.spend,inv:true,color:'#f59e0b',chart:<Donut spend={t.spend}/>},
           {label:'CTR',val:fp(t.ctr)||'—',sub:'click rate',delta:dl.ctr,inv:false,color:'#7c3aed',chart:<Spark data={dT} color="#7c3aed"/>},
         ];
+
+        // INSIGHTS data
+        const ins=[
+          {
+            label:'Alcance',
+            val:dl.reach!=null?(dl.reach>0?'+':'')+dl.reach+'%':'—',
+            good:dl.reach!=null?dl.reach>=0:null,
+            desc:dl.reach>=0?'Excelente crecimiento en los últimos 30 días.':'El alcance cayó respecto al período anterior.',
+          },
+          {
+            label:'Seguidores nuevos',
+            val:ig?.totals?.net_followers!=null?fmt(ig.totals.net_followers):'—',
+            good:ig?.totals?.net_followers!=null?ig.totals.net_followers>=0:null,
+            desc:'Tu comunidad sigue creciendo.',
+          },
+          {
+            label:'Interacciones',
+            val:ig?.deltas?.total_interactions!=null?(ig.deltas.total_interactions>0?'+':'')+ig.deltas.total_interactions+'%':'—',
+            good:ig?.deltas?.total_interactions!=null?ig.deltas.total_interactions>=0:null,
+            desc:(ig?.deltas?.total_interactions??0)<0?'Menos interacciones que el período anterior.':'Las interacciones van en alza.',
+          },
+          {
+            label:'Comentarios',
+            val:ig?.deltas?.comments!=null?(ig.deltas.comments>0?'+':'')+ig.deltas.comments+'%':'—',
+            good:ig?.deltas?.comments!=null?ig.deltas.comments>=0:null,
+            desc:(ig?.deltas?.comments??0)<0?'Bajaron los comentarios en tus publicaciones.':'Los comentarios van en alza.',
+          },
+        ];
+
+        // CLICS Y GASTO DIARIO chart (pure SVG, con hover tooltip)
+        const DualChartComp=()=>{
+          const [hov,setHov]=useState(null);
+          const daily=md?.daily;
+          if(!daily?.length)return null;
+          const n=daily.length;
+          const W=800,H=180,pL=42,pR=42,pT=12,pB=28;
+          const cW=W-pL-pR,cH=H-pT-pB;
+          const clicks=daily.map(d=>parseInt(d.clicks||0));
+          const spends=daily.map(d=>parseFloat(d.spend||0));
+          const dates=daily.map(d=>d.date_start?.slice(5));
+          const maxC=Math.max(...clicks)||1;
+          const maxS=Math.max(...spends)||1;
+          const cx=i=>pL+(i/(n-1))*cW;
+          const cyC=v=>pT+cH-(v/maxC)*cH;
+          const cyS=v=>pT+cH-(v/maxS)*cH;
+          const cPts=clicks.map((v,i)=>`${cx(i)},${cyC(v)}`).join(' ');
+          const sPts=spends.map((v,i)=>`${cx(i)},${cyS(v)}`).join(' ');
+          const step=Math.max(1,Math.floor(n/8));
+          const lblIdx=daily.reduce((a,_,i)=>{if(i===0||i===n-1||i%step===0)a.push(i);return a;},[]);
+          const yTicks=[0,.25,.5,.75,1];
+          const onMove=(e)=>{const r=e.currentTarget.getBoundingClientRect();setHov(Math.max(0,Math.min(n-1,Math.round((e.clientX-r.left)/r.width*(n-1)))));};
+          const tipW=126,tipH=50;
+          const ttx=hov!=null?Math.min(Math.max(cx(hov)+(cx(hov)<W/2?72:-72),pL+tipW/2),W-pR-tipW/2):0;
+          const tty=hov!=null?Math.min(Math.max(Math.min(cyC(clicks[hov]),cyS(spends[hov]))-tipH-10,pT+2),pT+cH-tipH-6):0;
+          return(
+            <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:180,display:'block',overflow:'visible',cursor:'crosshair'}}
+              onMouseMove={onMove} onMouseLeave={()=>setHov(null)}>
+              {yTicks.slice(1).map((f,i)=>(
+                <line key={i} x1={pL} y1={pT+cH-f*cH} x2={W-pR} y2={pT+cH-f*cH} stroke="var(--b)" strokeWidth=".8"/>
+              ))}
+              <polygon points={`${cx(0)},${pT+cH} ${sPts} ${cx(n-1)},${pT+cH}`} fill="#EBE300" opacity=".12"/>
+              <polygon points={`${cx(0)},${pT+cH} ${cPts} ${cx(n-1)},${pT+cH}`} fill="#1D9E75" opacity=".1"/>
+              <polyline points={sPts} fill="none" stroke="#d4c800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points={cPts} fill="none" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              {yTicks.map((f,i)=>(
+                <text key={i} x={pL-6} y={pT+cH-f*cH+4} textAnchor="end" fontSize="9" fill="var(--m)" fontFamily="inherit">{fmt(Math.round(f*maxC))}</text>
+              ))}
+              {yTicks.map((f,i)=>(
+                <text key={i} x={W-pR+6} y={pT+cH-f*cH+4} textAnchor="start" fontSize="9" fill="var(--m)" fontFamily="inherit">${fmt(Math.round(f*maxS))}</text>
+              ))}
+              {lblIdx.map(i=>(
+                <text key={i} x={cx(i)} y={H-6} textAnchor="middle" fontSize="9" fill="var(--m)" fontFamily="inherit">{dates[i]}</text>
+              ))}
+              {hov!=null&&<>
+                <line x1={cx(hov)} y1={pT} x2={cx(hov)} y2={pT+cH} stroke="var(--m)" strokeWidth=".8" strokeDasharray="3,3" opacity=".6"/>
+                <circle cx={cx(hov)} cy={cyC(clicks[hov])} r="4.5" fill="#1D9E75" stroke="white" strokeWidth="2"/>
+                <circle cx={cx(hov)} cy={cyS(spends[hov])} r="4.5" fill="#d4c800" stroke="white" strokeWidth="2"/>
+                <rect x={ttx-tipW/2} y={tty} width={tipW} height={tipH} rx="6" fill="rgba(20,20,18,.9)"/>
+                <text x={ttx} y={tty+15} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,.65)" fontFamily="inherit">{dates[hov]}</text>
+                <circle cx={ttx-45} cy={tty+31} r="3" fill="#1D9E75"/>
+                <text x={ttx-37} y={tty+34} fontSize="9" fill="white" fontFamily="inherit" fontWeight="600">Clics: {fmt(clicks[hov])}</text>
+                <circle cx={ttx+12} cy={tty+31} r="3" fill="#d4c800"/>
+                <text x={ttx+20} y={tty+34} fontSize="9" fill="white" fontFamily="inherit" fontWeight="600">${fmt(spends[hov])}</text>
+              </>}
+            </svg>
+          );
+        };
+
         return(
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:12,marginBottom:'1.5rem'}}>
-            {cards.map(card=>{
-              const good=card.delta==null?null:(card.inv?card.delta<=0:card.delta>=0);
-              return(
-                <div key={card.label} style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.1rem 1.2rem .7rem',position:'relative',overflow:'hidden'}}>
-                  <div style={{height:3,background:card.color,borderRadius:'14px 14px 0 0',position:'absolute',top:0,left:0,right:0}}/>
-                  <div style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6,display:'flex',alignItems:'center',gap:4}}>
-                    {card.label}
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{opacity:.4,flexShrink:0}}><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth=".9"/><path d="M5.5 4.5v3M5.5 3.5h.01" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg>
-                  </div>
-                  <div style={{fontSize:30,fontWeight:800,letterSpacing:'-.03em',lineHeight:1,color:'var(--t)'}}>
-                    {metaLoading&&!md?'—':card.val}
-                  </div>
-                  <div style={{fontSize:11,color:'var(--m)',marginTop:4}}>{card.sub}</div>
-                  {!metaLoading&&card.delta!=null&&(
-                    <div style={{fontSize:11,fontWeight:600,color:good?'#1D9E75':'#E53935',marginTop:5,display:'flex',alignItems:'center',gap:3}}>
-                      <span style={{fontSize:14,lineHeight:1}}>{good?'↑':'↓'}</span>
-                      {Math.abs(card.delta)}% vs periodo anterior
+          <div style={{display:'flex',gap:12,marginBottom:'1.5rem',alignItems:'stretch'}}>
+
+            {/* LEFT: 4 KPI cards + chart en columna */}
+            <div style={{display:'flex',flexDirection:'column',gap:12,flex:1}}>
+
+              {/* 4 KPI cards */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:12}}>
+                {cards.map(card=>{
+                  const good=card.delta==null?null:(card.inv?card.delta<=0:card.delta>=0);
+                  return(
+                    <div key={card.label} style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.05rem 1.2rem .75rem',position:'relative',overflow:'hidden'}}>
+                      <div style={{height:2,background:card.color,borderRadius:'14px 14px 0 0',position:'absolute',top:0,left:0,right:0}}/>
+                      <div style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6,display:'flex',alignItems:'center',gap:4}}>
+                        {card.label}
+                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{opacity:.4,flexShrink:0}}><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth=".9"/><path d="M5.5 4.5v3M5.5 3.5h.01" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg>
+                      </div>
+                      <div style={{fontSize:25,fontWeight:700,letterSpacing:'-.02em',lineHeight:1,color:'var(--t)'}}>
+                        {metaLoading&&!md?'—':card.val}
+                      </div>
+                      <div style={{fontSize:11,color:'var(--m)',marginTop:4}}>{card.sub}</div>
+                      {!metaLoading&&card.delta!=null&&(
+                        <div style={{fontSize:11,fontWeight:600,color:good?'#1D9E75':'#E53935',marginTop:5,display:'flex',alignItems:'center',gap:3}}>
+                          <span style={{fontSize:14,lineHeight:1}}>{good?'↑':'↓'}</span>
+                          {Math.abs(card.delta)}% vs periodo anterior
+                        </div>
+                      )}
+                      {metaLoading&&!md
+                        ?<div style={{height:48,marginTop:10,background:'var(--b)',borderRadius:6,opacity:.5}}/>
+                        :card.chart
+                      }
                     </div>
-                  )}
-                  {metaLoading&&!md
-                    ?<div style={{height:48,marginTop:10,background:'var(--b)',borderRadius:6,opacity:.5}}/>
-                    :card.chart
-                  }
+                  );
+                })}
+              </div>
+
+              {/* CLICS Y GASTO DIARIO */}
+              {md?.daily?.length>0&&(
+                <div style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.2rem 1.5rem',flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
+                    <div style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.08em'}}>
+                      CLICS Y GASTO DIARIO
+                    </div>
+                    <div style={{display:'flex',gap:16}}>
+                      <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--m)'}}>
+                        <span style={{width:20,height:2.5,background:'#1D9E75',display:'inline-block',borderRadius:2}}/>Clics
+                      </span>
+                      <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--m)'}}>
+                        <span style={{width:20,height:2.5,background:'#d4c800',display:'inline-block',borderRadius:2}}/>Gasto (USD)
+                      </span>
+                    </div>
+                  </div>
+                  <DualChartComp/>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* RIGHT: INSIGHTS card — span toda la altura */}
+            <div style={{width:220,flexShrink:0,background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.1rem 1.2rem',display:'flex',flexDirection:'column'}}>
+              {/* header */}
+              <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:'1.5rem'}}>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.08em'}}>INSIGHTS</span>
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{opacity:.4}}><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth=".9"/><path d="M5.5 4.5v3M5.5 3.5h.01" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg>
+              </div>
+              {/* items */}
+              <div style={{display:'flex',flexDirection:'column',gap:6,flex:1,justifyContent:'space-between'}}>
+                {ins.map((item,i)=>{
+                  const icUp=<svg width="28" height="28" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#E1F5EE"/><path d="M5 10l3-4 3 4" stroke="#1D9E75" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+                  const icDn=<svg width="28" height="28" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FBEAEA"/><path d="M5 6l3 4 3-4" stroke="#A32D2D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+                  const icNt=<svg width="28" height="28" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--bg)"/><path d="M5 8h6" stroke="var(--f)" strokeWidth="1.4" strokeLinecap="round"/></svg>;
+                  const ic=item.good===true?icUp:item.good===false?icDn:icNt;
+                  const vc=item.good===true?'#1D9E75':item.good===false?'#A32D2D':'var(--m)';
+                  return(
+                    <div key={i} style={{display:'flex',gap:8,padding:'8px 10px',borderRadius:8,background:'var(--bg)',border:'.5px solid var(--b)'}}>
+                      <div style={{flexShrink:0,marginTop:1}}>{ic}</div>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:vc,marginBottom:2}}>
+                          {(metaLoading&&!md&&i===0)?'—':item.val}
+                          <span style={{fontWeight:500,color:'var(--m)',fontSize:11,marginLeft:4}}>{item.label}</span>
+                        </div>
+                        <div style={{fontSize:10,color:'var(--f)',lineHeight:1.4}}>{item.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button style={{marginTop:'0.8rem',background:'#EBE300',border:'none',borderRadius:8,padding:'10px 12px',fontSize:12,fontWeight:700,cursor:'pointer',color:'#1a1a18',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span>Ver todos los insights</span>
+                <span style={{fontSize:14}}>›</span>
+              </button>
+            </div>
+
+          </div>
+        );
+      })()}
+
+      {/* SOCIAL + CAMPAIGNS SUMMARY */}
+      {(()=>{
+        const nf = ig?.totals?.net_followers ?? ig?.totals?.follows_and_unfollows;
+        const followersPct = nf != null && ig?.account?.followers_count ? Math.round((nf / ig.account.followers_count) * 100) : null;
+        const followersDelta = followersPct == null ? null : followersPct;
+        const igStats = [
+          { label: 'Seguidores nuevos', value: nf == null ? '—' : (nf >= 0 ? '+' + fmt(nf) : fmt(nf)), sub: `Total cuenta: ${fmt(ig?.account?.followers_count)}`, delta: followersDelta },
+          { label: 'Alcance', value: fmt(ig?.totals?.reach), delta: ig?.deltas?.reach },
+          { label: 'Interacciones', value: fmt(ig?.totals?.total_interactions), delta: ig?.deltas?.total_interactions },
+          { label: 'Visitas al perfil', value: fmt(ig?.totals?.profile_views), delta: ig?.deltas?.profile_views },
+        ];
+        const igActions = [
+          { label: 'Me gusta', icon: 'heart', value: fmt(ig?.totals?.likes), delta: ig?.deltas?.likes },
+          { label: 'Comentarios', icon: 'chat', value: fmt(ig?.totals?.comments), delta: ig?.deltas?.comments },
+          { label: 'Compartidos', icon: 'send', value: fmt(ig?.totals?.shares), delta: null },
+          { label: 'Guardados', icon: 'bookmark', value: fmt(ig?.totals?.saves), delta: null },
+        ];
+        const iconSvg = (type) => {
+          const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none' };
+          if (type === 'heart') return <svg {...common}><path d="M20.5 8.8c0 5.1-8.5 9.7-8.5 9.7S3.5 13.9 3.5 8.8A4.4 4.4 0 0112 6.4a4.4 4.4 0 018.5 2.4z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+          if (type === 'chat') return <svg {...common}><path d="M5 6.5A7.5 7.5 0 0112.5 4h.4A6.8 6.8 0 0120 10.7c0 3.7-3 6.7-7.1 6.7h-.7L6 20l1.3-4.1A6.5 6.5 0 015 6.5z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+          if (type === 'send') return <svg {...common}><path d="M20 4L4 11.5l6.3 2.2L13 20l7-16z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+          return <svg {...common}><path d="M7 4.5h10v15l-5-3-5 3v-15z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+        };
+        const topPosts = (ig?.posts || []).slice(0, 3).map((post, i) => {
+          const interactions = (post.like_count || 0) + (post.comments_count || 0);
+          return {
+            id: post.id || i,
+            image: post.thumbnail_url || post.media_url,
+            title: post.caption || '(sin caption)',
+            date: post.timestamp ? new Date(post.timestamp).toLocaleDateString('es-AR') : '',
+            metric: interactions ? fmt(interactions) : '—',
+          };
+        });
+        const getResult = (row) => {
+          const actions = row.actions || [];
+          const msg = actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d' || a.action_type === 'onsite_conversion.messaging_first_reply');
+          const lead = actions.find(a => a.action_type === 'lead');
+          const purchase = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
+          return parseInt((msg || lead || purchase)?.value || 0);
+        };
+        const activeCampaigns = (camps || []).slice(0, 3).map((camp, i) => {
+          const results = getResult(camp);
+          const spend = parseFloat(camp.spend || 0);
+          return {
+            id: camp.campaign_id || i,
+            name: camp.campaign_name || 'Campaña',
+            status: camp.status || 'Activa',
+            results,
+            cost: results > 0 ? spend / results : null,
+          };
+        });
+        const cardStyle = { background:'var(--s)', border:'.5px solid var(--b)', borderRadius:12, padding:'16px 18px', minHeight:150, overflow:'hidden' };
+        const titleStyle = { fontSize:10, fontWeight:700, color:'var(--m)', textTransform:'uppercase', letterSpacing:'.08em' };
+        return(
+          <div style={{display:'grid',gridTemplateColumns:'1.15fr .9fr 1.15fr',gap:12,marginBottom:'1.5rem'}}>
+            <div style={cardStyle}>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:18}}>
+                <span style={titleStyle}>Instagram Orgánico</span>
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{opacity:.45}}><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth=".9"/><path d="M5.5 4.5v3M5.5 3.5h.01" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg>
+              </div>
+              <div className="ig-summary-stats" style={{display:'grid',gridTemplateColumns:'1.1fr .9fr 1.1fr 1fr',columnGap:18,rowGap:10,marginBottom:18,alignItems:'start'}}>
+                {igStats.map(stat=>(
+                  <div key={stat.label} style={{minWidth:0}}>
+                    <div style={{fontSize:9,fontWeight:700,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.06em',lineHeight:1.2,minHeight:22,marginBottom:6}}>{stat.label}</div>
+                    <div className={`ig-stat-value${stat.label !== 'Seguidores nuevos' ? ' ig-stat-value--below' : ''}`} style={{display:'flex',alignItems:'baseline',gap:5,minHeight:23}}>
+                      <span style={{fontSize:21,fontWeight:700,color:'var(--t)',lineHeight:1}}>{igLoading&&!ig?'—':stat.value}</span>
+                      {stat.delta!=null&&<span className="ig-stat-delta" style={{display:'inline-flex',alignItems:'center',fontSize:9,fontWeight:700,color:stat.delta>=0?'#0F6E56':'#A32D2D',lineHeight:1}}>{stat.delta>=0?'↑':'↓'} {Math.abs(stat.delta)}%</span>}
+                    </div>
+                    {stat.sub&&<div style={{fontSize:10,color:stat.sub.includes('↓')?'#A32D2D':stat.sub.includes('↑')?'#1D9E75':'var(--m)',fontWeight:stat.sub.includes('%')?700:500,marginTop:6}}>{stat.sub}</div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,background:'var(--bg)',borderRadius:10,padding:'12px 10px'}}>
+                {igActions.map(action=>(
+                  <div key={action.label} style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                    <span style={{color:'var(--t)',flexShrink:0}}>{iconSvg(action.icon)}</span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,lineHeight:1,color:'var(--t)'}}>{igLoading&&!ig?'—':action.value}</div>
+                      <div style={{display:'inline-flex',alignItems:'center',marginTop:4,fontSize:9,color:action.delta==null?'var(--f)':action.delta>=0?'#0F6E56':'#A32D2D',fontWeight:700,lineHeight:1}}>
+                        {action.delta==null?'--':`${action.delta>=0?'↑':'↓'} ${Math.abs(action.delta)}%`}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14}}>
+                <span style={titleStyle}>Top posts</span>
+                <button style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver más</button>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {(topPosts.length?topPosts:[1,2,3].map(i=>({id:i,title:'Sin datos disponibles',date:'',metric:'—'}))).map((post,i)=>(
+                  <div key={post.id} style={{display:'grid',gridTemplateColumns:'18px 44px 1fr auto',gap:10,alignItems:'center'}}>
+                    <div style={{fontSize:16,fontWeight:700,color:'var(--t)',textAlign:'center'}}>{i+1}</div>
+                    <div style={{width:44,height:44,borderRadius:7,background:'var(--bg)',overflow:'hidden',border:'.5px solid var(--b)'}}>
+                      {post.image&&<img src={post.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>}
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:'var(--t)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{post.title}</div>
+                      <div style={{fontSize:10,color:'var(--m)',marginTop:3}}>{post.date}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:14,fontWeight:700,color:'var(--t)'}}>{post.metric}</div>
+                      <div style={{fontSize:9,color:'var(--m)',marginTop:2}}>Alcance</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14}}>
+                <span style={titleStyle}>Campañas activas</span>
+                <button onClick={() => setTab('metaads')} style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver todas</button>
+              </div>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead>
+                  <tr>
+                    {['Campaña','Estado','Resultados','Costo'].map(h=><th key={h} style={{textAlign:'left',fontSize:9,fontWeight:700,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.06em',padding:'0 8px 8px 0',borderBottom:'.5px solid var(--b)'}}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeCampaigns.length?activeCampaigns:[1,2,3].map(i=>({id:i,name:'Sin campaña',status:'—',results:null,cost:null}))).map(camp=>(
+                    <tr key={camp.id}>
+                      <td style={{fontSize:12,fontWeight:600,color:'var(--t)',padding:'10px 8px 8px 0',borderBottom:'.5px solid var(--b)',maxWidth:150,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{camp.name}</td>
+                      <td style={{padding:'10px 8px 8px 0',borderBottom:'.5px solid var(--b)'}}>
+                        <span style={{fontSize:10,fontWeight:700,padding:'3px 8px',borderRadius:20,background:String(camp.status).toLowerCase().includes('active')||String(camp.status).toLowerCase().includes('activa')?'#dcfce7':'#f4f4f5',color:String(camp.status).toLowerCase().includes('active')||String(camp.status).toLowerCase().includes('activa')?'#15803d':'var(--m)'}}>{camp.status}</span>
+                      </td>
+                      <td style={{fontSize:12,fontWeight:700,color:'var(--t)',padding:'10px 8px 8px 0',borderBottom:'.5px solid var(--b)'}}>{camp.results ? fmt(camp.results) : '--'}</td>
+                      <td style={{fontSize:12,fontWeight:700,color:'var(--t)',padding:'10px 0 8px 0',borderBottom:'.5px solid var(--b)'}}>{camp.cost ? '$'+camp.cost.toFixed(2) : '--'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{gridColumn:'1 / -1',background:'#111110',border:'.5px solid rgba(235,227,0,.28)',borderRadius:10,minHeight:58,padding:'12px 28px',display:'flex',alignItems:'center',gap:24,overflow:'hidden',position:'relative'}}>
+              <div aria-hidden="true" style={{position:'absolute',right:-30,top:-30,height:120,display:'flex',alignItems:'center',opacity:.36,pointerEvents:'none'}}>
+                {[0,1,2].map(index=><img key={index} src="/Logos/imagen_2.png" alt="" style={{height:118,width:190,objectFit:'contain',marginLeft:index?-108:0}}/>) }
+              </div>
+              <img src="/Logos/abeja_numero_uno.svg" alt="" aria-hidden="true" style={{position:'absolute',left:'43%',top:-67,width:290,height:195,objectFit:'contain',opacity:.9,pointerEvents:'none',zIndex:1}}/>
+              <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,zIndex:1}}>
+                <span style={{width:7,height:7,borderRadius:'50%',background:'#EBE300'}}/>
+                <span style={{fontSize:13,fontWeight:800,color:'#EBE300',textTransform:'uppercase',letterSpacing:'.08em'}}>Tips Pinta</span>
+              </div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,.82)',fontWeight:500,zIndex:1}}>Los mejores resultados se logran con constancia. ¡Seguí así! <span style={{color:'#EBE300'}}>♥</span></div>
+            </div>
           </div>
         );
       })()}
 
 {/* TABS */}
-        <div style={{ display: 'flex', gap: 0, borderBottom: '.5px solid var(--b)', marginBottom: '1.5rem', overflowX: 'auto' }} className="np">
+        {false && <div style={{ display: 'flex', gap: 0, borderBottom: '.5px solid var(--b)', marginBottom: '1.5rem', overflowX: 'auto' }} className="np">
           {tabs.map(tb => (
             <div key={tb.k} onClick={() => setTab(tb.k)} style={{ fontSize: 13, padding: '8px 20px', cursor: 'pointer', color: activeTab === tb.k ? '#1D9E75' : 'var(--m)', borderBottom: activeTab === tb.k ? '2px solid #1D9E75' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', fontWeight: activeTab === tb.k ? 600 : 400 }}>
               {tb.l}
             </div>
           ))}
-        </div>
+        </div>}
  
         {/* TAB: RESUMEN */}
-        {activeTab === 'resumen' && (
+        {activeTab === '__legacy_resumen__' && (
             <div onClick={() => setOpenMenu(null)}>
 
               {/* META ADS */}
@@ -463,9 +819,9 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                         <KpiCard id="ctr" label="CTR" val={fp(t.ctr)} sub="click rate" delta={dl.ctr} invertDelta={false} color="#7c3aed" defViz="spark" dailyData={md.daily?.map(d=>parseFloat(d.ctr||0))||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
                       </div>
                       <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 10, padding: '8px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--m)' }}>Período anterior</span>
+                        <span style={{ fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--m)' }}>Período anterior</span>
                         {[['Alcance', fmt(md.totalsPrev?.reach)],['Clics', fmt(md.totalsPrev?.clicks)],['Gasto', fm(md.totalsPrev?.spend)],['CPM', fm(md.totalsPrev?.cpm)],['CTR', fp(md.totalsPrev?.ctr)]].map(([l,v]) => (
-                          <span key={l} style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: 'var(--m)' }}>{l} <strong style={{ color: 'var(--t)', fontWeight: 600 }}>{v}</strong></span>
+                          <span key={l} style={{ fontSize: 11, color: 'var(--m)' }}>{l} <strong style={{ color: 'var(--t)', fontWeight: 600 }}>{v}</strong></span>
                         ))}
                       </div>
                     </>
@@ -487,7 +843,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                       {ig ? (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
                           {[['Seguidores', (() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows; return (nf === null || nf === undefined) ? '—' : (nf >= 0 ? '+'+fmt(nf) : fmt(nf)); })()],['Alcance', fmt(ig.totals?.reach)],['Interacciones', fmt(ig.totals?.total_interactions)],['Visitas perfil', fmt(ig.totals?.profile_views)]].map(([l,v]) => (
-                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
+                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
                           ))}
                         </div>
                       ) : igLoading ? <div style={{ fontSize: 12, color: 'var(--m)' }}>Cargando...</div> : <div style={{ fontSize: 12, color: 'var(--m)' }}>Sin datos</div>}
@@ -504,7 +860,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                       {fb ? (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                           {[['Fans', fmt(fb.page?.fan_count)],['Seguidores', fmt(fb.page?.followers_count)],['Hablando', fmt(fb.page?.talking_about_count)],['Posts', String(fb.posts?.length||0)]].map(([l,v]) => (
-                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
+                            <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
                           ))}
                         </div>
                       ) : fbLoading ? <div style={{ fontSize: 12, color: 'var(--m)' }}>Cargando...</div> : <div style={{ fontSize: 12, color: 'var(--m)' }}>Sin datos</div>}
@@ -525,7 +881,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   {ga4 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
                       {[['Sesiones', fmt(ga4.totals?.sessions),'#4285f4'],['Usuarios', fmt(ga4.totals?.users),'#34a853'],['Páginas vistas', fmt(ga4.totals?.pageviews),'#ea4335'],['Rebote', ga4.totals?.bounceRate ? (ga4.totals.bounceRate*100).toFixed(1)+'%' : '—','#fbbc04']].map(([l,v,c]) => (
-                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
+                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
                       ))}
                     </div>
                   ) : ga4Loading ? <div style={{ fontSize: 12, color: 'var(--m)' }}>Cargando...</div> : <div style={{ fontSize: 12, color: 'var(--m)' }}>Sin datos</div>}
@@ -544,7 +900,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   {woo ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
                       {[['Ingresos', '$'+(woo.totals?.revenue?.toLocaleString('es-AR',{minimumFractionDigits:0})||'0')],['Pedidos', String(woo.totals?.orders||0)],['Ticket prom.', '$'+Math.round(woo.totals?.avgOrderValue||0).toLocaleString('es-AR')],['Productos top', String(woo.topProducts?.length||0)]].map(([l,v]) => (
-                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
+                        <div key={l}><div className="kpi-lbl">{l}</div><div style={{ fontSize: 20, fontWeight: 700, color: 'var(--t)' }}>{v||'—'}</div></div>
                       ))}
                     </div>
                   ) : wooLoading ? <div style={{ fontSize: 12, color: 'var(--m)' }}>Cargando...</div> : <div style={{ fontSize: 12, color: 'var(--m)' }}>Sin datos</div>}
@@ -564,14 +920,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
 
 
                        {/* TAB: META ADS */}
-        {activeTab === 'metaads' && (
+        {false && activeTab === 'metaads' && (
           metaLoading ? <Spinner /> :
           !md ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
             {/* SECCIÓN: RENDIMIENTO */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Rendimiento</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Rendimiento</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               {[
@@ -609,7 +965,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             {/* SECCIÓN: RESULTADOS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Resultados · conversiones</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Resultados · conversiones</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               {[
@@ -635,13 +991,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             {/* SECCIÓN: CAMPAÑAS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {camps.length} en el período</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {camps.length} en el período</span>
               {(drillCampaign || drillAdset) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
                   <span style={{ color: 'var(--m)', fontSize: 11 }}>›</span>
-                  <button onClick={() => { setDrillCampaign(null); setDrillAdset(null); setDrillData(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D9E75', fontSize: 11, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>Campañas</button>
-                  {drillCampaign && <><span style={{ color: 'var(--m)', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: drillAdset ? '#1D9E75' : 'var(--t)', fontFamily: 'Inter,sans-serif', cursor: drillAdset ? 'pointer' : 'default', fontWeight: 600 }} onClick={() => drillAdset && (setDrillAdset(null), setDrillData(null))}>{drillCampaign.name}</span></>}
-                  {drillAdset && <><span style={{ color: 'var(--m)', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: 'var(--t)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{drillAdset.name}</span></>}
+                  <button onClick={() => { setDrillCampaign(null); setDrillAdset(null); setDrillData(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D9E75', fontSize: 11, fontWeight: 600 }}>Campañas</button>
+                  {drillCampaign && <><span style={{ color: 'var(--m)', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: drillAdset ? '#1D9E75' : 'var(--t)', cursor: drillAdset ? 'pointer' : 'default', fontWeight: 600 }} onClick={() => drillAdset && (setDrillAdset(null), setDrillData(null))}>{drillCampaign.name}</span></>}
+                  {drillAdset && <><span style={{ color: 'var(--m)', fontSize: 11 }}>›</span><span style={{ fontSize: 11, color: 'var(--t)', fontWeight: 600 }}>{drillAdset.name}</span></>}
                 </div>
               )}
             </div>
@@ -655,11 +1011,11 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                     <button onClick={() => { setDrillLoading(true); fetch(`/api/meta-drilldown?account_id=${c.meta_ad_account_id}&since=${df}&until=${dt}`).then(r=>r.json()).then(d=>setDrillData(d)).finally(()=>setDrillLoading(false)); }} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Ver todas las campañas</button>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg)' }}>
                         {['Campaña', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Resultados', ''].map(h => (
-                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -691,7 +1047,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                             <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(camp.ctr || 0))}</span></td>
                             <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13 }}>{fm(parseFloat(camp.spend || 0))}</td>
                             <td style={{ padding: '12px 14px' }}>
-                              {res > 0 ? <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res}</span> : <span style={{ color: 'var(--m)' }}>—</span>}
+                              {res > 0 ? <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res}</span> : <span style={{ color: 'var(--m)' }}>—</span>}
                             </td>
                             <td style={{ padding: '12px 14px', color: 'var(--m)', fontSize: 12 }}>→</td>
                           </tr>
@@ -707,11 +1063,11 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             {drillCampaign && !drillAdset && (
               <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
                 {drillLoading ? <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--m)' }}>Cargando ad sets...</div> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg)' }}>
                         {['Ad Set', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Presupuesto', ''].map(h => (
-                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -770,18 +1126,18 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                                 {ad.status === 'ACTIVE' ? '● Activo' : '○ Pausado'}
                               </span>
                             </div>
-                            <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 600, fontSize: 13, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.name}</div>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.name}</div>
                             {ad.creative?.title && <div style={{ fontSize: 12, color: 'var(--m)', marginBottom: 4, fontWeight: 500 }}>{ad.creative.title}</div>}
                             {ad.creative?.body && <div style={{ fontSize: 11, color: 'var(--m)', marginBottom: 10, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ad.creative.body}</div>}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, borderTop: '.5px solid rgba(0,0,0,.06)', paddingTop: 10 }}>
                               {[['Clics', fmt(parseInt(ins.clicks||0))], ['CTR', fp(parseFloat(ins.ctr||0))], ['Gasto', fm(parseFloat(ins.spend||0))]].map(([l,v]) => (
                                 <div key={l} style={{ textAlign: 'center' }}>
-                                  <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 9, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{l}</div>
-                                  <div style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--t)' }}>{v}</div>
+                                  <div style={{ fontSize: 9, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{l}</div>
+                                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t)' }}>{v}</div>
                                 </div>
                               ))}
                             </div>
-                            {res > 0 && <div style={{ marginTop: 8, textAlign: 'center' }}><span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 12px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res} resultados</span></div>}
+                            {res > 0 && <div style={{ marginTop: 8, textAlign: 'center' }}><span style={{ fontSize: 11, padding: '3px 12px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res} resultados</span></div>}
                           </div>
                         </div>
                       );
@@ -796,22 +1152,22 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
 
             {/* PERÍODO ANTERIOR */}
             <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 10, padding: '10px 14px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--m)' }}>Período anterior</span>
+              <span style={{ fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--m)' }}>Período anterior</span>
               {[['Alcance', fmt(md.totalsPrev?.reach)], ['Clics', fmt(md.totalsPrev?.clicks)], ['Gasto', fm(md.totalsPrev?.spend)], ['CPM', fm(md.totalsPrev?.cpm)], ['CPC', fm(md.totalsPrev?.cpc)], ['CTR', fp(md.totalsPrev?.ctr)]].map(([l, v]) => (
-                <span key={l} style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: 'var(--m)' }}>{l} <strong style={{ color: 'var(--t)', fontWeight: 600 }}>{v}</strong></span>
+                <span key={l} style={{ fontSize: 11, color: 'var(--m)' }}>{l} <strong style={{ color: 'var(--t)', fontWeight: 600 }}>{v}</strong></span>
               ))}
             </div>
           </>
         )}
 
         {/* TAB: FACEBOOK */}
-        {activeTab === 'facebook' && (
+        {false && activeTab === 'facebook' && (
           fbLoading ? <Spinner /> :
           !fb ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877f2' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Facebook Orgánico</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Facebook Orgánico</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               {[
@@ -831,14 +1187,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877f2' }} />
-                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {fb.posts.length} en el período</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {fb.posts.length} en el período</span>
                 </div>
                 <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg)' }}>
                         {['Post', 'Likes', 'Comentarios', 'Compartidos', 'Fecha'].map(h => (
-                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -861,13 +1217,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: INSTAGRAM */}
-        {activeTab === 'instagram' && (
+        {false && activeTab === 'instagram' && (
           igLoading ? <Spinner /> :
           !ig ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e1306c' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Instagram Orgánico</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Instagram Orgánico</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               <KpiCard id="ig_followers" label="Seguidores nuevos" val={(() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows; return (nf === null || nf === undefined) ? '—' : (nf >= 0 ? '+'+fmt(nf) : fmt(nf)); })()} sub={`total cuenta: ${fmt(ig.account?.followers_count)}`} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
@@ -885,7 +1241,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e1306c' }} />
-                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {ig.posts.length} publicaciones</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Posts · {ig.posts.length} publicaciones</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
                   {ig.posts.slice(0,12).map((post, i) => (
@@ -898,8 +1254,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                       <div style={{ padding: '10px 12px' }}>
                         <div style={{ fontSize: 12, color: 'var(--m)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.caption || '(sin caption)'}</div>
                         <div style={{ display: 'flex', gap: 10 }}>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: '#e1306c' }}>♥ {post.like_count || 0}</span>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: 'var(--m)' }}>💬 {post.comments_count || 0}</span>
+                          <span style={{ fontSize: 11, color: '#e1306c' }}>♥ {post.like_count || 0}</span>
+                          <span style={{ fontSize: 11, color: 'var(--m)' }}>💬 {post.comments_count || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -911,13 +1267,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: GA4 */}
-        {activeTab === 'ga4' && (
+        {false && activeTab === 'ga4' && (
           ga4Loading ? <Spinner /> :
           !ga4 ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos de GA4 disponibles.</div> :
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4285f4' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Google Analytics 4</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Google Analytics 4</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               <KpiCard id="ga4_sessions" label="Sesiones" val={fmt(ga4.totals?.sessions)} sub="total" delta={ga4.deltas?.sessions} invertDelta={false} color="#4285f4" defViz="spark" dailyData={ga4.daily?.map(d=>d.sessions)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
@@ -942,8 +1298,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                     return ga4.sources.map((s, i) => (
                       <div key={i} style={{ marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: 'var(--m)' }}>{s.channel}</span>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--t)' }}>{fmt(s.sessions)}</span>
+                          <span style={{ fontSize: 12, color: 'var(--m)' }}>{s.channel}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t)' }}>{fmt(s.sessions)}</span>
                         </div>
                         <div style={{ height: 4, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: (s.sessions / total * 100) + '%', background: colors[i % colors.length], borderRadius: 2 }} />
@@ -958,8 +1314,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   <div className="kpi-lbl" style={{ marginBottom: 12 }}>Páginas más vistas</div>
                   {ga4.topPages.slice(0, 8).map((p, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < ga4.topPages.length - 1 ? '.5px solid var(--b)' : 'none' }}>
-                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, color: 'var(--m)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{p.path}</span>
-                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, fontWeight: 600, color: '#4285f4', flexShrink: 0 }}>{fmt(p.pageviews)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--m)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{p.path}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#4285f4', flexShrink: 0 }}>{fmt(p.pageviews)}</span>
                     </div>
                   ))}
                 </div>
@@ -968,13 +1324,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           </>
         )}
         {/* TAB: WOOCOMMERCE */}
-        {activeTab === 'woocommerce' && (
+        {false && activeTab === 'woocommerce' && (
           wooLoading ? <Spinner /> :
           !woo ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos de WooCommerce.</div> :
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 4 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7f54b3' }} />
-              <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>WooCommerce</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               <KpiCard id="woo_revenue" label="Ingresos" val={'$' + (woo.totals?.revenue?.toLocaleString('es-AR', {minimumFractionDigits:0}) || '0')} sub="total período" delta={woo.deltas?.revenue} invertDelta={false} color="#7f54b3" defViz="spark" dailyData={woo.daily?.map(d=>d.revenue)||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
@@ -989,10 +1345,10 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   <div className="kpi-lbl" style={{ marginBottom: 12 }}>Productos más vendidos</div>
                   {woo.topProducts.map((p, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < woo.topProducts.length - 1 ? '.5px solid var(--b)' : 'none' }}>
-                      <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, color: 'var(--m)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.name}</span>
+                      <span style={{ fontSize: 12, color: 'var(--m)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.name}</span>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12, fontWeight: 600, color: '#7f54b3' }}>${Math.round(p.revenue).toLocaleString('es-AR')}</div>
-                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: 'var(--m)' }}>{p.qty} uds</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#7f54b3' }}>${Math.round(p.revenue).toLocaleString('es-AR')}</div>
+                        <div style={{ fontSize: 10, color: 'var(--m)' }}>{p.qty} uds</div>
                       </div>
                     </div>
                   ))}
@@ -1007,8 +1363,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                     return woo.daily.slice(-14).map((d, i) => (
                       <div key={i} style={{ marginBottom: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, color: 'var(--m)' }}>{d.date?.slice(5)}</span>
-                          <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)' }}>${Math.round(d.revenue).toLocaleString('es-AR')} · {d.orders} ped.</span>
+                          <span style={{ fontSize: 10, color: 'var(--m)' }}>{d.date?.slice(5)}</span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)' }}>${Math.round(d.revenue).toLocaleString('es-AR')} · {d.orders} ped.</span>
                         </div>
                         <div style={{ height: 4, background: '#f4f4f5', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: max > 0 ? (d.revenue/max*100)+'%' : '0', background: '#7f54b3', borderRadius: 2 }} />
@@ -1023,7 +1379,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: BOT */}
-        {activeTab === 'bot' && (() => {
+        {false && activeTab === 'bot' && (() => {
           const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
           const totals = botData.reduce((a, r) => ({
             consultas: a.consultas + (parseInt(r.data?.consultas) || 0),
@@ -1057,14 +1413,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#25d366' }} />
-                <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>WhatsApp Bot</span>
-                <button onClick={() => setShowBotForm(!showBotForm)} style={{ marginLeft: 'auto', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>+ Agregar mes</button>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--m)', textTransform: 'uppercase', letterSpacing: '.08em' }}>WhatsApp Bot</span>
+                <button onClick={() => setShowBotForm(!showBotForm)} style={{ marginLeft: 'auto', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 14px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>+ Agregar mes</button>
               </div>
               {showBotForm && (
                 <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, padding: '16px', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
                   <div>
                     <div className="kpi-lbl" style={{ marginBottom: 4 }}>Mes</div>
-                    <select value={botForm.period} onChange={e => setBotForm(p => ({...p, period: e.target.value}))} style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontFamily: 'Inter,sans-serif', fontSize: 12 }}>
+                    <select value={botForm.period} onChange={e => setBotForm(p => ({...p, period: e.target.value}))} style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontSize: 12 }}>
                       <option value="">Seleccionar</option>
                       {months.map((m, i) => <option key={m} value={`2026-${String(i+1).padStart(2,'0')}`}>{m} 2026</option>)}
                     </select>
@@ -1072,7 +1428,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   {[['consultas','Consultas Bot'],['tx','TX Bot'],['contactos','Total Contactos'],['facturacion','Facturación $']].map(([k,l]) => (
                     <div key={k}>
                       <div className="kpi-lbl" style={{ marginBottom: 4 }}>{l}</div>
-                      <input type="number" value={botForm[k]} onChange={e => setBotForm(p => ({...p, [k]: e.target.value}))} placeholder="0" style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontFamily: 'Inter,sans-serif', fontSize: 12 }} />
+                      <input type="number" value={botForm[k]} onChange={e => setBotForm(p => ({...p, [k]: e.target.value}))} placeholder="0" style={{ width: '100%', padding: '6px 8px', border: '.5px solid rgba(0,0,0,.15)', borderRadius: 8, fontSize: 12 }} />
                     </div>
                   ))}
                   <button onClick={saveRow} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Guardar</button>
@@ -1094,11 +1450,11 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               )}
               {botData.length > 0 ? (
                 <div style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg)' }}>
                         {['Mes','Consultas Bot','TX Bot','Total Contactos','Facturación','Tasa Conv.',''].map(h => (
-                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                          <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, fontWeight: 600, color: 'var(--m)', borderBottom: '.5px solid var(--b)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>

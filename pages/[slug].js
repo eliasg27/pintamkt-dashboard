@@ -36,7 +36,7 @@ export default function ClientePage() {
   }, [slug]);
 
   if (notFound) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'Inter, sans-serif', color: '#a1a1aa' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#a1a1aa' }}>
       Cliente no encontrado
     </div>
   );
@@ -52,25 +52,23 @@ export default function ClientePage() {
     <>
       <Head>
         <title>{client.nombre} · Reporte Pintamkt</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" />
       </Head>
       <div style={{ minHeight: '100vh', background: '#f5f5f2' }}>
         {/* HEADER público */}
         <div style={{ background: '#1D9E75', padding: '2rem 2.5rem', marginBottom: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 26, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{client.nombre}</div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(255,255,255,.75)' }}>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{client.nombre}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)' }}>
                 Período: {dateFrom} → {dateTo}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} max={dateTo} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontFamily: 'Inter, sans-serif', fontSize: 12, colorScheme: 'dark' }} />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} max={dateTo} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
               <span style={{ color: 'rgba(255,255,255,.6)', fontSize: 12 }}>→</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} max={hoy()} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontFamily: 'Inter, sans-serif', fontSize: 12, colorScheme: 'dark' }} />
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} max={hoy()} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
               {[['7d', 7], ['30d', 30], ['90d', 90]].map(([l, n]) => (
-                <button key={l} onClick={() => { setDateFrom(ago(n)); setDateTo(hoy()); }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 6, padding: '4px 12px', color: '#fff', fontSize: 11, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{l}</button>
+                <button key={l} onClick={() => { setDateFrom(ago(n)); setDateTo(hoy()); }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 6, padding: '4px 12px', color: '#fff', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{l}</button>
               ))}
             </div>
           </div>
@@ -79,7 +77,7 @@ export default function ClientePage() {
         {/* Dashboard — mismo componente que usa la agencia, sin sidebar ni controles de módulos */}
         <ClientDashboard client={client} dateFrom={dateFrom} dateTo={dateTo} />
 
-        <div style={{ textAlign: 'center', padding: '2rem', fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#c4c2bb' }}>
+        <div style={{ textAlign: 'center', padding: '2rem', fontSize: 11, color: '#c4c2bb' }}>
           Reporte generado por <strong>pintamkt</strong> · {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>

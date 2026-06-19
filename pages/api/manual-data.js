@@ -27,11 +27,11 @@ export default async function handler(req, res) {
       .from('client_manual_data')
       .select('month, data')
       .eq('client_id', client_id)
-      .order('month', { ascending: false });
+      .order('month', { ascending: true });
 
     if (error) return res.status(500).json({ error: error.message });
 
-    const rows = (data || []).map(r => ({ period: r.month, ...r.data }));
+    const rows = (data || []).map(r => ({ period: r.month, data: r.data || {} }));
     return res.json({ rows });
   }
 
