@@ -266,7 +266,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   );
 
   return (
-    <div onClick={() => setOpenMenu(null)} style={{ fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif", background: 'var(--bg)', minHeight: '100%', padding: '1.5rem' }}>
+    <div className="client-dashboard" onClick={() => setOpenMenu(null)} style={{ fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif", background: 'var(--bg)', minHeight: '100%', padding: '1.5rem' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         .kpi-lbl { font-size: 10px; color: var(--m); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 5px; }
         .kpi-val { font-size: 25px; font-weight: 700; color: var(--t); letter-spacing: -.02em; line-height: 1; }
@@ -285,6 +285,32 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         .sect-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
         .sect-title { font-size: 10px; font-weight: 600; color: var(--m); text-transform: uppercase; letter-spacing: .08em; }
         .ig-stat-value--below { flex-direction: column; align-items: flex-start !important; gap: 3px !important; min-height: 38px !important; }
+        .dashboard-primary { display: flex; gap: 12px; margin-bottom: 1.5rem; align-items: stretch; }
+        .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+        .dashboard-insights { width: 220px; flex-shrink: 0; }
+        .dashboard-summary { display: grid; grid-template-columns: 1.15fr .9fr 1.15fr; gap: 12px; margin-bottom: 1.5rem; }
+        @media (min-width: 2000px) {
+          .client-dashboard { max-width: 1800px; margin: 0 auto; }
+        }
+        @media (max-width: 1100px) {
+          .dashboard-primary { flex-direction: column; }
+          .dashboard-insights { width: auto !important; }
+          .dashboard-summary { grid-template-columns: 1fr 1fr; }
+          .dashboard-summary > :nth-child(3), .dashboard-summary > :nth-child(4) { grid-column: 1 / -1 !important; }
+        }
+        @media (max-width: 720px) {
+          .client-dashboard { padding: 16px !important; }
+          .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+          .dashboard-summary { grid-template-columns: 1fr; gap: 10px; }
+          .dashboard-summary > :nth-child(3), .dashboard-summary > :nth-child(4) { grid-column: auto !important; }
+          .dashboard-summary table { font-size: 10px; }
+          .dashboard-summary table th, .dashboard-summary table td { padding-right: 4px !important; }
+        }
+        @media (max-width: 420px) {
+          .dashboard-kpis { grid-template-columns: 1fr; }
+        }
+        @media (min-width: 1500px) { .tips-flight { left: 52% !important; } }
+        @media (max-width: 1100px) { .tips-flight { display: none; } }
         @media (max-width: 600px) {
           .ig-summary-stats { column-gap: 10px !important; }
           .ig-stat-value { flex-direction: column; align-items: flex-start !important; gap: 3px !important; min-height: 38px !important; }
@@ -540,13 +566,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         };
 
         return(
-          <div style={{display:'flex',gap:12,marginBottom:'1.5rem',alignItems:'stretch'}}>
+          <div className="dashboard-primary">
 
             {/* LEFT: 4 KPI cards + chart en columna */}
             <div style={{display:'flex',flexDirection:'column',gap:12,flex:1}}>
 
               {/* 4 KPI cards */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:12}}>
+              <div className="dashboard-kpis">
                 {cards.map(card=>{
                   const good=card.delta==null?null:(card.inv?card.delta<=0:card.delta>=0);
                   return(
@@ -597,7 +623,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             </div>
 
             {/* RIGHT: INSIGHTS card — span toda la altura */}
-            <div style={{width:220,flexShrink:0,background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.1rem 1.2rem',display:'flex',flexDirection:'column'}}>
+            <div className="dashboard-insights" style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.1rem 1.2rem',display:'flex',flexDirection:'column'}}>
               {/* header */}
               <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:'1.5rem'}}>
                 <span style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.08em'}}>INSIGHTS</span>
@@ -690,7 +716,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         const cardStyle = { background:'var(--s)', border:'.5px solid var(--b)', borderRadius:12, padding:'16px 18px', minHeight:150, overflow:'hidden' };
         const titleStyle = { fontSize:10, fontWeight:700, color:'var(--m)', textTransform:'uppercase', letterSpacing:'.08em' };
         return(
-          <div style={{display:'grid',gridTemplateColumns:'1.15fr .9fr 1.15fr',gap:12,marginBottom:'1.5rem'}}>
+          <div className="dashboard-summary">
             <div style={cardStyle}>
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:18}}>
                 <span style={titleStyle}>Instagram Orgánico</span>
@@ -778,7 +804,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               <div aria-hidden="true" style={{position:'absolute',right:-30,top:-30,height:120,display:'flex',alignItems:'center',opacity:.36,pointerEvents:'none'}}>
                 {[0,1,2].map(index=><img key={index} src="/Logos/imagen_2.png" alt="" style={{height:118,width:190,objectFit:'contain',marginLeft:index?-108:0}}/>) }
               </div>
-              <img src="/Logos/abeja_numero_uno.svg" alt="" aria-hidden="true" style={{position:'absolute',left:'43%',top:-67,width:290,height:195,objectFit:'contain',opacity:.9,pointerEvents:'none',zIndex:1}}/>
+              <img className="tips-flight" src="/Logos/abeja_numero_uno.svg" alt="" aria-hidden="true" style={{position:'absolute',left:'43%',top:-67,width:290,height:195,objectFit:'contain',opacity:.9,pointerEvents:'none',zIndex:1}}/>
               <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,zIndex:1}}>
                 <span style={{width:7,height:7,borderRadius:'50%',background:'#EBE300'}}/>
                 <span style={{fontSize:13,fontWeight:800,color:'#EBE300',textTransform:'uppercase',letterSpacing:'.08em'}}>Tips Pinta</span>
