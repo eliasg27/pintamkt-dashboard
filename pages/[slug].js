@@ -13,6 +13,31 @@ function fd(d) { return d.toISOString().slice(0, 10); }
 function ago(n) { const d = new Date(); d.setDate(d.getDate() - n); return fd(d); }
 function hoy() { return fd(new Date()); }
 
+const REPORT_STYLE = `
+  :root {
+    --bg: #F8F7F4;
+    --s:  #FFFFFF;
+    --b:  rgba(0,0,0,.07);
+    --bm: rgba(0,0,0,.13);
+    --t:  #1A1A18;
+    --m:  #6B6A65;
+    --f:  #8A8983;
+    --a:  #EBE300;
+    --ad: #C8BC00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--t);
+    font-size: 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
+`;
+
 export default function ClientePage() {
   const { query } = useRouter();
   const slug = query.slug;
@@ -36,16 +61,21 @@ export default function ClientePage() {
   }, [slug]);
 
   if (notFound) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#a1a1aa' }}>
-      Cliente no encontrado
-    </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: REPORT_STYLE }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--m)' }}>
+        Cliente no encontrado
+      </div>
+    </>
   );
 
   if (!client || !dateFrom) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <div style={{ width: 24, height: 24, border: '2px solid #e0e0e0', borderTopColor: '#1D9E75', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: REPORT_STYLE }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(235,227,0,.2)', borderTopColor: '#EBE300', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+      </div>
+    </>
   );
 
   return (
@@ -53,32 +83,62 @@ export default function ClientePage() {
       <Head>
         <title>{client.nombre} · Reporte Pintamkt</title>
       </Head>
-      <div style={{ minHeight: '100vh', background: '#f5f5f2' }}>
-        {/* HEADER público */}
-        <div style={{ background: '#1D9E75', padding: '2rem 2.5rem', marginBottom: 0 }}>
+      <style dangerouslySetInnerHTML={{ __html: REPORT_STYLE }} />
+
+      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+
+        {/* HEADER */}
+        <div style={{ background: '#EBE300', padding: '1.6rem 2.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{client.nombre}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.75)' }}>
+              {/* Logo + nombre */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#111110' }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#111110', textTransform: 'uppercase', letterSpacing: '.1em' }}>Reporte Pintamkt</span>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#111110', letterSpacing: '-.02em', lineHeight: 1.1 }}>{client.nombre}</div>
+              <div style={{ fontSize: 11, color: 'rgba(0,0,0,.5)', marginTop: 4 }}>
                 Período: {dateFrom} → {dateTo}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} max={dateTo} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
-              <span style={{ color: 'rgba(255,255,255,.6)', fontSize: 12 }}>→</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} max={hoy()} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
+
+            {/* Controles de fecha */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="date" value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)} max={dateTo}
+                style={{ background: 'rgba(0,0,0,.1)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#111110', fontSize: 12, colorScheme: 'light' }}
+              />
+              <span style={{ color: 'rgba(0,0,0,.4)', fontSize: 12 }}>→</span>
+              <input
+                type="date" value={dateTo}
+                onChange={e => setDateTo(e.target.value)} max={hoy()}
+                style={{ background: 'rgba(0,0,0,.1)', border: 'none', borderRadius: 8, padding: '5px 10px', color: '#111110', fontSize: 12, colorScheme: 'light' }}
+              />
               {[['7d', 7], ['30d', 30], ['90d', 90]].map(([l, n]) => (
-                <button key={l} onClick={() => { setDateFrom(ago(n)); setDateTo(hoy()); }} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 6, padding: '4px 12px', color: '#fff', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{l}</button>
+                <button
+                  key={l}
+                  onClick={() => { setDateFrom(ago(n)); setDateTo(hoy()); }}
+                  style={{ background: 'rgba(0,0,0,.12)', border: 'none', borderRadius: 6, padding: '4px 12px', color: '#111110', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {l}
+                </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Dashboard — mismo componente que usa la agencia, sin sidebar ni controles de módulos */}
+        {/* Franja decorativa */}
+        <div style={{ height: 3, background: 'linear-gradient(90deg,#EBE300 0%,#b8ad00 100%)' }} />
+
         <ClientDashboard client={client} dateFrom={dateFrom} dateTo={dateTo} />
 
-        <div style={{ textAlign: 'center', padding: '2rem', fontSize: 11, color: '#c4c2bb' }}>
-          Reporte generado por <strong>pintamkt</strong> · {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+        {/* FOOTER */}
+        <div style={{ textAlign: 'center', padding: '2rem', fontSize: 11, color: 'var(--f)', borderTop: '.5px solid var(--b)', marginTop: 8 }}>
+          Reporte generado por{' '}
+          <strong style={{ color: '#EBE300', fontWeight: 700 }}>pintamkt</strong>
+          {' '}·{' '}
+          {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>
     </>

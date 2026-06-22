@@ -50,35 +50,16 @@ function KPI({ label, val, sub, delta, invertDelta }) {
 }
  
 function SparkCanvas({ data, color, type }) {
-  const canvasRef = useRef(null);
-  const chartRef = useRef(null);
-  useEffect(() => {
-    if (!canvasRef.current || !window.Chart || !data?.length) return;
-    if (chartRef.current) chartRef.current.destroy();
-    chartRef.current = new window.Chart(canvasRef.current, {
-      type: type === 'line' ? 'line' : 'bar',
-      data: {
-        labels: data.map((_, i) => i + 1),
-        datasets: [{
-          data,
-          borderColor: color,
-          backgroundColor: type === 'line' ? color + '18' : color + '99',
-          fill: type === 'line',
-          tension: 0.4,
-          pointRadius: 0,
-          borderWidth: type === 'line' ? 2 : 0,
-          borderRadius: type === 'bar' ? 2 : 0,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { display: false }, y: { display: false } }
-      }
-    });
-    return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
-  }, [data, color, type]);
-  return <div style={{ height: 48, marginTop: 10, position: 'relative' }}><canvas ref={canvasRef} /></div>;
+  if (!data?.length || data.every(value => Number(value) === 0)) return null;
+  const values=data.map(value=>Number(value)||0);
+  const max=Math.max(...values)||1;
+  const min=Math.min(...values);
+  const range=max-min||1;
+  const points=values.map((value,index)=>`${values.length===1?50:(index/(values.length-1))*100},${90-((value-min)/range)*76}`).join(' ');
+  const barWidth=100/values.length;
+  return <div style={{height:48,marginTop:10}}><svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{width:'100%',height:'100%',display:'block'}}>
+    {type==='line' ? <><polygon points={`${points} 100,96 0,96`} fill={color} opacity=".12"/><polyline points={points} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></> : values.map((value,index)=><rect key={index} x={index*barWidth+1} y={100-(value/max)*88} width={Math.max(barWidth-2,1)} height={(value/max)*88} rx="2" fill={color} opacity=".82"/>)}
+  </svg></div>;
 }
 
 function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, dailyData, vizTypes, setViz, openMenu, setOpenMenu }) {
@@ -130,6 +111,19 @@ function KpiCard({ id, label, val, sub, delta, invertDelta, color, defViz, daily
   );
 }
 
+function TipsFooter() {
+  return (
+    <div style={{background:'#111110',border:'.5px solid rgba(235,227,0,.28)',borderRadius:10,minHeight:58,padding:'12px 28px',display:'flex',alignItems:'center',gap:24,overflow:'hidden',position:'relative',marginTop:'1.5rem'}}>
+      <div aria-hidden="true" style={{position:'absolute',right:-30,top:-30,height:120,display:'flex',alignItems:'center',opacity:.36,pointerEvents:'none'}}>
+        {[0,1,2].map(index=><img key={index} src="/Logos/imagen_2.png" alt="" style={{height:118,width:190,objectFit:'contain',marginLeft:index?-108:0}}/>)}
+      </div>
+      <img className="tips-flight" src="/Logos/abeja_numero_uno.svg" alt="" aria-hidden="true" style={{position:'absolute',left:'43%',top:-67,width:290,height:195,objectFit:'contain',opacity:.9,pointerEvents:'none',zIndex:1}}/>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,zIndex:1}}><span style={{width:7,height:7,borderRadius:'50%',background:'#EBE300'}}/><span style={{fontSize:13,fontWeight:800,color:'#EBE300',textTransform:'uppercase',letterSpacing:'.08em'}}>Tips Pinta</span></div>
+      <div style={{fontSize:12,color:'rgba(255,255,255,.82)',fontWeight:500,zIndex:1}}>Los mejores resultados se logran con constancia. Segui asi! <span style={{color:'#EBE300'}}>&hearts;</span></div>
+    </div>
+  );
+}
+
 
 export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt }) {
   const [md, setMd] = useState(null);
@@ -153,10 +147,17 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const [drillLoading, setDrillLoading] = useState(false);
   const [vizTypes, setVizTypes] = useState({});
   const [openMenu, setOpenMenu] = useState(null);
+  const [activeCh, setActiveCh] = useState(null);
+  const [showClientInsights, setShowClientInsights] = useState(false);
+  const [detailModal, setDetailModal] = useState(null);
   const ref = useRef(null);
   const ci = useRef(null);
+  const channelBarRef = useRef(null);
 
   const setViz = (metric, type) => { setVizTypes(p => { const n = {...p, [metric]: type}; try { localStorage.setItem('pv_'+c?.slug, JSON.stringify(n)); } catch {} return n; }); };
+  const scrollChannels = direction => channelBarRef.current?.scrollBy({ left: direction * 240, behavior: 'smooth' });
+
+  useEffect(() => { setActiveCh(null); }, [c?.id]);
 
   useEffect(() => {
     if (!c) return;
@@ -238,7 +239,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
     if (!s) { const el=document.createElement('script'); el.id='cjs'; el.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'; el.onload=build; document.head.appendChild(el); }
     else if (window.Chart) build();
     else s.addEventListener('load', build);
-  }, [md, tab]);
+  }, [md, tab, activeCh]);
 
   if (!c) return null;
 
@@ -246,6 +247,12 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const t = md?.totals || {};
   const dl = md?.deltas || {};
   const camps = md?.campaigns || [];
+  const clientInsights = [
+    { label:'Alcance', delta:dl.reach, description:dl.reach >= 0 ? 'El alcance viene creciendo frente al periodo anterior.' : 'El alcance cayo frente al periodo anterior.' },
+    { label:'Clics', delta:dl.clicks, description:dl.clicks >= 0 ? 'Los anuncios estan generando mas clics.' : 'Los clics bajaron y conviene revisar creatividad y segmentacion.' },
+    { label:'CTR', delta:dl.ctr, description:dl.ctr >= 0 ? 'La tasa de clics mejoro en el periodo.' : 'La tasa de clics bajo en el periodo.' },
+    { label:'Seguidores nuevos', delta:ig?.totals?.net_followers ?? ig?.totals?.follows_and_unfollows ?? null, description:'Evolucion de la comunidad en el periodo seleccionado.' },
+  ];
 
   const tabs = [];
   if (mods.meta_resumen || mods.meta_rendimiento || mods.meta_resultados || mods.meta_campanas) tabs.push({ k: 'metaads', l: 'Meta Ads' });
@@ -289,6 +296,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         .dashboard-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
         .dashboard-insights { width: 220px; flex-shrink: 0; }
         .dashboard-summary { display: grid; grid-template-columns: 1.15fr .9fr 1.15fr; gap: 12px; margin-bottom: 1.5rem; }
+        @media (min-width: 1101px) { .channel-carousel-arrow { display: none !important; } }
         @media (min-width: 2000px) {
           .client-dashboard { max-width: 1800px; margin: 0 auto; }
         }
@@ -317,6 +325,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           .ig-stat-delta { white-space: nowrap; }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .ch-bar::-webkit-scrollbar { display: none; }
+        .ch-bar { -ms-overflow-style: none; scrollbar-width: none; }
       ` }} />
 
       {/* TOP CARDS */}
@@ -326,12 +336,15 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         const hc=health>=80?'#1D9E75':health>=60?'#EF9F27':'#E53935';
         const hlabel=health>=80?'Excelente':health>=60?'Bueno':health>=40?'Regular':'Crítico';
         const sv=c.estado==='activo'?[['Rendimiento excelente','#1D9E75'],['Crecimiento alto','#1D9E75'],['Rendimiento estable','#6b6a65']]:c.estado==='revisar'?[['Requiere atención','#EF9F27'],['Bajo rendimiento','#E53935'],['Requiere atención','#EF9F27']]:[['Rendimiento bajo','#E53935'],['Sin actividad','var(--f)'],['Rendimiento bajo','#E53935']];
-        const plats=[
-          {label:'Meta Ads',conn:!!c.meta_ad_account_id,icon:<img src="/Logos/Logos_redes_sociales/icono_meta_ads.png" alt="" style={{width:22,height:22,objectFit:'contain'}}/>,sc:sv[(0+seed)%3][1],sl:sv[(0+seed)%3][0]},
-          {label:'Instagram',conn:!!c.ig_account_id,icon:<img src="/Logos/Logos_redes_sociales/icono_instagram.svg" alt="" style={{width:22,height:22,objectFit:'contain'}}/>,sc:sv[(1+seed)%3][1],sl:sv[(1+seed)%3][0]},
-          {label:'Facebook',conn:!!c.fb_page_id,icon:<img src="/Logos/Logos_redes_sociales/icono_facebook.svg" alt="" style={{width:22,height:22,objectFit:'contain'}}/>,sc:sv[(2+seed)%3][1],sl:sv[(2+seed)%3][0]},
-          {label:'Google Ads',conn:!!(mods.google_ads||mods.ga4),icon:<img src="/Logos/Logos_redes_sociales/icono_google_ads.svg" alt="" style={{width:22,height:22,objectFit:'contain'}}/>,sc:c.estado==='revisar'?'#EF9F27':'var(--m)',sl:(mods.google_ads||mods.ga4)?sv[(0+seed)%3][0]:'No conectado'},
-          {label:'WhatsApp',conn:!!mods.mensajes,icon:<img src="/Logos/Logos_redes_sociales/whatsapp.png" alt="" style={{width:22,height:22,objectFit:'contain'}}/>,sc:'var(--m)',sl:'No conectado'},
+        const channels=[
+          {key:'meta',        label:'Meta Ads',          icon:'icono_meta_ads.png',     conn:!!c.meta_ad_account_id},
+          {key:'instagram',   label:'Instagram',          icon:'icono_instagram.svg',    conn:!!(mods.instagram_organico&&c.ig_account_id)},
+          {key:'facebook',    label:'Facebook',           icon:'icono_facebook.svg',     conn:!!(mods.facebook_organico&&c.fb_page_id)},
+          {key:'ga4',         label:'Google Analytics',   icon:'google_analitycs.svg',   conn:!!mods.ga4},
+          {key:'googleads',   label:'Google Ads',         icon:'icono_google_ads.svg',   conn:!!mods.google_ads},
+          {key:'woocommerce', label:'Ecommerce',          icon:'ecommerce.svg',          conn:!!mods.woocommerce},
+          {key:'linkedin',    label:'LinkedIn',           icon:'linkedin.png',           conn:false},
+          {key:'bot',         label:'Bot',                icon:'bot.svg',                conn:!!mods.bot},
         ];
         return(
           <div style={{display:'flex',gap:12,marginBottom:'1.5rem'}}>
@@ -355,30 +368,37 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               </div>
             </div>
 
-            {/* Card 2: Canales conectados */}
-            <div style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,padding:'1.2rem 1.5rem',flex:1,display:'flex',flexDirection:'column',minHeight:130}}>
-              <div style={{fontSize:10,fontWeight:600,color:'var(--m)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:14}}>Canales conectados</div>
-              <div style={{display:'flex',flex:1,alignItems:'center'}}>
-                {plats.map((p,i)=>(
-                  <div key={p.label} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:8,borderLeft:i>0?'.5px solid var(--b)':'none',padding:'0 8px'}}>
-                    <div style={{width:40,height:40,borderRadius:'50%',background:'var(--s)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:'.5px solid var(--b)',opacity:p.conn?1:.35}}>
-                      {p.icon}
+            {/* Card 2: Channel slidebar */}
+            <div style={{background:'var(--s)',border:'.5px solid var(--b)',borderRadius:14,flex:1,display:'flex',alignItems:'center',minHeight:130,overflow:'hidden',padding:'0 .5rem',position:'relative'}}>
+              <button className="channel-carousel-arrow" type="button" onClick={()=>scrollChannels(-1)} aria-label="Canales anteriores" title="Canales anteriores" style={{position:'absolute',left:8,zIndex:2,width:28,height:28,borderRadius:'50%',border:'.5px solid var(--bm)',background:'var(--s)',color:'var(--t)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.5 2.5L4 7l4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <div ref={channelBarRef} className="ch-bar" style={{display:'flex',justifyContent:'space-between',gap:16,overflowX:'auto',width:'100%',padding:'0 34px',scrollBehavior:'smooth'}}>
+                {channels.map(ch=>{
+                  const isActive=activeCh===ch.key;
+                  return(
+                    <div key={ch.key}
+                      onClick={()=>ch.conn&&setActiveCh(isActive?null:ch.key)}
+                      style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,padding:'12px 10px',borderRadius:10,cursor:ch.conn?'pointer':'default',background:isActive?'var(--bg)':'transparent',flexShrink:0,minWidth:68,opacity:ch.conn?1:.3,transition:'background .15s'}}>
+                      <div style={{width:42,height:42,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',border:isActive?'2px solid #EBE300':'.5px solid var(--b)',background:'var(--bg)',transition:'border .15s'}}>
+                        <img src={`/Logos/Logos_redes_sociales/${ch.icon}`} alt={ch.label} style={{width:24,height:24,objectFit:'contain'}}/>
+                      </div>
+                      <div style={{fontSize:10,fontWeight:isActive?700:500,color:isActive?'var(--t)':'var(--m)',textAlign:'center',whiteSpace:'nowrap',transition:'color .15s'}}>{ch.label}</div>
                     </div>
-                    <div style={{textAlign:'center'}}>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--t)',marginBottom:2}}>{p.label}</div>
-                      <div style={{fontSize:10,color:p.conn?p.sc:'var(--f)',lineHeight:1.3}}>{p.conn?p.sl:'No conectado'}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              <button className="channel-carousel-arrow" type="button" onClick={()=>scrollChannels(1)} aria-label="Canales siguientes" title="Canales siguientes" style={{position:'absolute',right:8,zIndex:2,width:28,height:28,borderRadius:'50%',border:'.5px solid var(--bm)',background:'var(--s)',color:'var(--t)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 2.5L10 7l-4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
             </div>
 
           </div>
         );
       })()}
 
-      {/* 4 KPI CARDS + INSIGHTS + CHART */}
-      {(()=>{
+      {/* 4 KPI CARDS + INSIGHTS + CHART — solo en resumen */}
+      {activeCh === null && (()=>{
         const Spark=({data,color})=>{
           const [hov,setHov]=useState(null);
           if(!data?.length||data.every(v=>v===0))return null;
@@ -537,10 +557,10 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               {yTicks.slice(1).map((f,i)=>(
                 <line key={i} x1={pL} y1={pT+cH-f*cH} x2={W-pR} y2={pT+cH-f*cH} stroke="var(--b)" strokeWidth=".8"/>
               ))}
-              <polygon points={`${cx(0)},${pT+cH} ${sPts} ${cx(n-1)},${pT+cH}`} fill="#EBE300" opacity=".12"/>
-              <polygon points={`${cx(0)},${pT+cH} ${cPts} ${cx(n-1)},${pT+cH}`} fill="#1D9E75" opacity=".1"/>
-              <polyline points={sPts} fill="none" stroke="#d4c800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points={cPts} fill="none" stroke="#1D9E75" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <polygon points={`${cx(0)},${pT+cH} ${sPts} ${cx(n-1)},${pT+cH}`} fill="#F59E0B" opacity=".1"/>
+              <polygon points={`${cx(0)},${pT+cH} ${cPts} ${cx(n-1)},${pT+cH}`} fill="#2563EB" opacity=".08"/>
+              <polyline points={sPts} fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points={cPts} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               {yTicks.map((f,i)=>(
                 <text key={i} x={pL-6} y={pT+cH-f*cH+4} textAnchor="end" fontSize="9" fill="var(--m)" fontFamily="inherit">{fmt(Math.round(f*maxC))}</text>
               ))}
@@ -552,13 +572,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               ))}
               {hov!=null&&<>
                 <line x1={cx(hov)} y1={pT} x2={cx(hov)} y2={pT+cH} stroke="var(--m)" strokeWidth=".8" strokeDasharray="3,3" opacity=".6"/>
-                <circle cx={cx(hov)} cy={cyC(clicks[hov])} r="4.5" fill="#1D9E75" stroke="white" strokeWidth="2"/>
-                <circle cx={cx(hov)} cy={cyS(spends[hov])} r="4.5" fill="#d4c800" stroke="white" strokeWidth="2"/>
+                <circle cx={cx(hov)} cy={cyC(clicks[hov])} r="4.5" fill="#2563EB" stroke="white" strokeWidth="2"/>
+                <circle cx={cx(hov)} cy={cyS(spends[hov])} r="4.5" fill="#F59E0B" stroke="white" strokeWidth="2"/>
                 <rect x={ttx-tipW/2} y={tty} width={tipW} height={tipH} rx="6" fill="rgba(20,20,18,.9)"/>
                 <text x={ttx} y={tty+15} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,.65)" fontFamily="inherit">{dates[hov]}</text>
-                <circle cx={ttx-45} cy={tty+31} r="3" fill="#1D9E75"/>
+                <circle cx={ttx-45} cy={tty+31} r="3" fill="#2563EB"/>
                 <text x={ttx-37} y={tty+34} fontSize="9" fill="white" fontFamily="inherit" fontWeight="600">Clics: {fmt(clicks[hov])}</text>
-                <circle cx={ttx+12} cy={tty+31} r="3" fill="#d4c800"/>
+                <circle cx={ttx+12} cy={tty+31} r="3" fill="#F59E0B"/>
                 <text x={ttx+20} y={tty+34} fontSize="9" fill="white" fontFamily="inherit" fontWeight="600">${fmt(spends[hov])}</text>
               </>}
             </svg>
@@ -651,7 +671,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   );
                 })}
               </div>
-              <button style={{marginTop:'0.8rem',background:'#EBE300',border:'none',borderRadius:8,padding:'10px 12px',fontSize:12,fontWeight:700,cursor:'pointer',color:'#1a1a18',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <button onClick={()=>setShowClientInsights(true)} style={{marginTop:'0.8rem',background:'#EBE300',border:'none',borderRadius:8,padding:'10px 12px',fontSize:12,fontWeight:700,cursor:'pointer',color:'#1a1a18',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <span>Ver todos los insights</span>
                 <span style={{fontSize:14}}>›</span>
               </button>
@@ -685,16 +705,18 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           if (type === 'send') return <svg {...common}><path d="M20 4L4 11.5l6.3 2.2L13 20l7-16z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
           return <svg {...common}><path d="M7 4.5h10v15l-5-3-5 3v-15z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>;
         };
-        const topPosts = (ig?.posts || []).slice(0, 3).map((post, i) => {
+        const allPosts = (ig?.posts || []).map((post, i) => {
           const interactions = (post.like_count || 0) + (post.comments_count || 0);
           return {
             id: post.id || i,
             image: post.thumbnail_url || post.media_url,
+            permalink: post.permalink,
             title: post.caption || '(sin caption)',
             date: post.timestamp ? new Date(post.timestamp).toLocaleDateString('es-AR') : '',
             metric: interactions ? fmt(interactions) : '—',
           };
         });
+        const topPosts = allPosts.slice(0, 3);
         const getResult = (row) => {
           const actions = row.actions || [];
           const msg = actions.find(a => a.action_type === 'onsite_conversion.messaging_conversation_started_7d' || a.action_type === 'onsite_conversion.messaging_first_reply');
@@ -702,7 +724,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           const purchase = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase');
           return parseInt((msg || lead || purchase)?.value || 0);
         };
-        const activeCampaigns = (camps || []).slice(0, 3).map((camp, i) => {
+        const allCampaigns = (camps || []).map((camp, i) => {
           const results = getResult(camp);
           const spend = parseFloat(camp.spend || 0);
           return {
@@ -713,6 +735,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             cost: results > 0 ? spend / results : null,
           };
         });
+        const activeCampaigns = allCampaigns.slice(0, 3);
         const cardStyle = { background:'var(--s)', border:'.5px solid var(--b)', borderRadius:12, padding:'16px 18px', minHeight:150, overflow:'hidden' };
         const titleStyle = { fontSize:10, fontWeight:700, color:'var(--m)', textTransform:'uppercase', letterSpacing:'.08em' };
         return(
@@ -752,11 +775,11 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             <div style={cardStyle}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14}}>
                 <span style={titleStyle}>Top posts</span>
-                <button style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver más</button>
+                <button onClick={()=>setDetailModal({type:'posts',items:allPosts})} style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver más</button>
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {(topPosts.length?topPosts:[1,2,3].map(i=>({id:i,title:'Sin datos disponibles',date:'',metric:'—'}))).map((post,i)=>(
-                  <div key={post.id} style={{display:'grid',gridTemplateColumns:'18px 44px 1fr auto',gap:10,alignItems:'center'}}>
+                    <div key={post.id} onClick={()=>post.permalink&&window.open(post.permalink,'_blank','noopener,noreferrer')} style={{display:'grid',gridTemplateColumns:'18px 44px 1fr auto',gap:10,alignItems:'center',cursor:post.permalink?'pointer':'default'}}>
                     <div style={{fontSize:16,fontWeight:700,color:'var(--t)',textAlign:'center'}}>{i+1}</div>
                     <div style={{width:44,height:44,borderRadius:7,background:'var(--bg)',overflow:'hidden',border:'.5px solid var(--b)'}}>
                       {post.image&&<img src={post.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>}
@@ -777,7 +800,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             <div style={cardStyle}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:14}}>
                 <span style={titleStyle}>Campañas activas</span>
-                <button onClick={() => setTab('metaads')} style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver todas</button>
+                <button onClick={()=>setDetailModal({type:'campaigns',items:allCampaigns})} style={{border:'.5px solid var(--b)',background:'var(--s)',borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:700,color:'var(--t)',cursor:'pointer'}}>Ver todas</button>
               </div>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
@@ -800,7 +823,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
               </table>
             </div>
 
-            <div style={{gridColumn:'1 / -1',background:'#111110',border:'.5px solid rgba(235,227,0,.28)',borderRadius:10,minHeight:58,padding:'12px 28px',display:'flex',alignItems:'center',gap:24,overflow:'hidden',position:'relative'}}>
+            {activeCh === null && <div style={{gridColumn:'1 / -1',background:'#111110',border:'.5px solid rgba(235,227,0,.28)',borderRadius:10,minHeight:58,padding:'12px 28px',display:'flex',alignItems:'center',gap:24,overflow:'hidden',position:'relative'}}>
               <div aria-hidden="true" style={{position:'absolute',right:-30,top:-30,height:120,display:'flex',alignItems:'center',opacity:.36,pointerEvents:'none'}}>
                 {[0,1,2].map(index=><img key={index} src="/Logos/imagen_2.png" alt="" style={{height:118,width:190,objectFit:'contain',marginLeft:index?-108:0}}/>) }
               </div>
@@ -810,7 +833,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                 <span style={{fontSize:13,fontWeight:800,color:'#EBE300',textTransform:'uppercase',letterSpacing:'.08em'}}>Tips Pinta</span>
               </div>
               <div style={{fontSize:12,color:'rgba(255,255,255,.82)',fontWeight:500,zIndex:1}}>Los mejores resultados se logran con constancia. ¡Seguí así! <span style={{color:'#EBE300'}}>♥</span></div>
-            </div>
+            </div>}
           </div>
         );
       })()}
@@ -946,7 +969,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
 
 
                        {/* TAB: META ADS */}
-        {false && activeTab === 'metaads' && (
+        {activeCh === 'meta' && (
           metaLoading ? <Spinner /> :
           !md ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
@@ -1186,8 +1209,26 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           </>
         )}
 
-        {/* TAB: FACEBOOK */}
-        {false && activeTab === 'facebook' && (
+        {/* CANAL: GOOGLE ADS — placeholder */}
+        {activeCh === 'googleads' && (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--m)', fontSize: 13 }}>
+            <img src="/Logos/Logos_redes_sociales/icono_google_ads.svg" alt="" style={{ width: 40, height: 40, opacity: .4, marginBottom: 16 }} />
+            <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--t)' }}>Google Ads</div>
+            <div>Integración próximamente disponible.</div>
+          </div>
+        )}
+
+        {/* CANAL: LINKEDIN — placeholder */}
+        {activeCh === 'linkedin' && (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--m)', fontSize: 13 }}>
+            <img src="/Logos/Logos_redes_sociales/linkedin.png" alt="" style={{ width: 40, height: 40, opacity: .4, marginBottom: 16 }} />
+            <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--t)' }}>LinkedIn</div>
+            <div>Integración próximamente disponible.</div>
+          </div>
+        )}
+
+        {/* CANAL: FACEBOOK */}
+        {activeCh === 'facebook' && (
           fbLoading ? <Spinner /> :
           !fb ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
@@ -1243,7 +1284,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: INSTAGRAM */}
-        {false && activeTab === 'instagram' && (
+        {activeCh === 'instagram' && (
           igLoading ? <Spinner /> :
           !ig ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos disponibles.</div> :
           <>
@@ -1253,13 +1294,13 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
               <KpiCard id="ig_followers" label="Seguidores nuevos" val={(() => { const nf = ig.totals?.net_followers ?? ig.totals?.follows_and_unfollows; return (nf === null || nf === undefined) ? '—' : (nf >= 0 ? '+'+fmt(nf) : fmt(nf)); })()} sub={`total cuenta: ${fmt(ig.account?.followers_count)}`} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" delta={ig.deltas?.reach} invertDelta={false} color="#e1306c" defViz="spark" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" delta={ig.deltas?.total_interactions} invertDelta={false} color="#f09433" defViz="bars" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" delta={ig.deltas?.profile_views} invertDelta={false} color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_reach" label="Alcance" val={fmt(ig.totals?.reach)} sub="personas" delta={ig.deltas?.reach} invertDelta={false} color="#e1306c" defViz="spark" dailyData={ig.daily?.reach||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_interactions" label="Interacciones" val={fmt(ig.totals?.total_interactions)} sub="total" delta={ig.deltas?.total_interactions} invertDelta={false} color="#f09433" defViz="bars" dailyData={ig.daily?.total_interactions||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_profile_views" label="Visitas perfil" val={fmt(ig.totals?.profile_views)} sub="total" delta={ig.deltas?.profile_views} invertDelta={false} color="#cc2366" defViz="number" dailyData={ig.daily?.profile_views||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 16 }}>
-              <KpiCard id="ig_likes" label="Likes" val={fmt(ig.totals?.likes)} sub="total" delta={ig.deltas?.likes} invertDelta={false} color="#e1306c" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-              <KpiCard id="ig_comments" label="Comentarios" val={fmt(ig.totals?.comments)} sub="total" delta={ig.deltas?.comments} invertDelta={false} color="#f09433" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_likes" label="Likes" val={fmt(ig.totals?.likes)} sub="total" delta={ig.deltas?.likes} invertDelta={false} color="#e1306c" defViz="spark" dailyData={ig.daily?.likes||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+              <KpiCard id="ig_comments" label="Comentarios" val={fmt(ig.totals?.comments)} sub="total" delta={ig.deltas?.comments} invertDelta={false} color="#f09433" defViz="bars" dailyData={ig.daily?.comments||[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_shares" label="Shares" val={fmt(ig.totals?.shares)} sub="total" color="#cc2366" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
               <KpiCard id="ig_saves" label="Saves" val={fmt(ig.totals?.saved)} sub="total" color="#833ab4" defViz="number" dailyData={[]} vizTypes={vizTypes} setViz={setViz} openMenu={openMenu} setOpenMenu={setOpenMenu} />
             </div>
@@ -1271,7 +1312,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
                   {ig.posts.slice(0,12).map((post, i) => (
-                    <div key={i} style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, overflow: 'hidden' }}>
+                    <div key={i} role={post.permalink?'link':undefined} tabIndex={post.permalink?0:undefined} onClick={()=>post.permalink&&window.open(post.permalink,'_blank','noopener,noreferrer')} onKeyDown={event=>post.permalink&&event.key==='Enter'&&window.open(post.permalink,'_blank','noopener,noreferrer')} style={{ background: 'var(--s)', border: '.5px solid var(--b)', borderRadius: 12, overflow: 'hidden', cursor:post.permalink?'pointer':'default' }}>
                       {post.thumbnail_url || post.media_url ? (
                         <img src={post.thumbnail_url || post.media_url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
                       ) : (
@@ -1293,7 +1334,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: GA4 */}
-        {false && activeTab === 'ga4' && (
+        {activeCh === 'ga4' && (
           ga4Loading ? <Spinner /> :
           !ga4 ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos de GA4 disponibles.</div> :
           <>
@@ -1350,7 +1391,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
           </>
         )}
         {/* TAB: WOOCOMMERCE */}
-        {false && activeTab === 'woocommerce' && (
+        {activeCh === 'woocommerce' && (
           wooLoading ? <Spinner /> :
           !woo ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--m)', fontSize: 13 }}>Sin datos de WooCommerce.</div> :
           <>
@@ -1405,7 +1446,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
         )}
 
         {/* TAB: BOT */}
-        {false && activeTab === 'bot' && (() => {
+        {activeCh === 'bot' && (() => {
           const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
           const totals = botData.reduce((a, r) => ({
             consultas: a.consultas + (parseInt(r.data?.consultas) || 0),
@@ -1525,6 +1566,43 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
             </>
           );
         })()}
+
+      {activeCh !== null && <TipsFooter />}
+
+      {detailModal && <div onClick={()=>setDetailModal(null)} style={{position:'fixed',inset:0,zIndex:500,background:'rgba(0,0,0,.42)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+        <div onClick={event=>event.stopPropagation()} style={{width:detailModal.type==='posts'?680:760,maxWidth:'100%',maxHeight:'85vh',overflowY:'auto',background:'var(--s)',borderRadius:12,border:'.5px solid var(--b)',padding:20,boxShadow:'0 20px 50px rgba(0,0,0,.25)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:14}}>
+            <div style={{fontSize:16,fontWeight:700,color:'var(--t)'}}>{detailModal.type==='posts'?'Todos los posts':'Todas las campañas'}</div>
+            <button type="button" aria-label="Cerrar detalle" onClick={()=>setDetailModal(null)} style={{width:30,height:30,borderRadius:7,border:'.5px solid var(--bm)',background:'var(--s)',color:'var(--t)',fontSize:20,lineHeight:1,cursor:'pointer'}}>×</button>
+          </div>
+          {detailModal.items.length===0 ? <div style={{padding:'2rem 0',textAlign:'center',fontSize:13,color:'var(--m)'}}>No hay datos disponibles para este periodo.</div> : detailModal.type==='posts' ? (
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>{detailModal.items.map((post,index)=><div key={post.id||index} style={{display:'grid',gridTemplateColumns:'26px 56px 1fr auto',gap:12,alignItems:'center',padding:'8px 0',borderTop:'.5px solid var(--b)'}}>
+              <div style={{fontSize:16,fontWeight:700,textAlign:'center'}}>{index+1}</div><div style={{width:56,height:56,borderRadius:8,overflow:'hidden',background:'var(--bg)'}}>{post.image&&<img src={post.image} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>
+              <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{post.title}</div><div style={{fontSize:11,color:'var(--m)',marginTop:4}}>{post.date}</div></div><div style={{fontSize:13,fontWeight:700,textAlign:'right'}}>{post.metric}<div style={{fontSize:10,color:'var(--m)',fontWeight:500,marginTop:2}}>Interacciones</div></div>
+            </div>)}</div>
+          ) : (
+            <table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{['Campaña','Estado','Resultados','Costo'].map(label=><th key={label} style={{textAlign:'left',fontSize:10,color:'var(--m)',textTransform:'uppercase',padding:'0 8px 9px 0',borderBottom:'.5px solid var(--b)'}}>{label}</th>)}</tr></thead><tbody>{detailModal.items.map((campaign,index)=><tr key={campaign.id||index}><td style={{padding:'12px 8px 12px 0',fontSize:13,fontWeight:700,borderBottom:'.5px solid var(--b)'}}>{campaign.name}</td><td style={{padding:'12px 8px 12px 0',fontSize:12,borderBottom:'.5px solid var(--b)'}}>{campaign.status}</td><td style={{padding:'12px 8px 12px 0',fontSize:13,fontWeight:700,borderBottom:'.5px solid var(--b)'}}>{campaign.results||'--'}</td><td style={{padding:'12px 0',fontSize:13,fontWeight:700,borderBottom:'.5px solid var(--b)'}}>{campaign.cost?'$'+campaign.cost.toFixed(2):'--'}</td></tr>)}</tbody></table>
+          )}
+        </div>
+      </div>}
+
+      {showClientInsights && <div onClick={()=>setShowClientInsights(false)} style={{position:'fixed',inset:0,zIndex:500,background:'rgba(0,0,0,.42)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+        <div onClick={event=>event.stopPropagation()} style={{width:560,maxWidth:'100%',maxHeight:'85vh',overflowY:'auto',background:'var(--s)',borderRadius:12,border:'.5px solid var(--b)',padding:20,boxShadow:'0 20px 50px rgba(0,0,0,.25)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:14}}>
+            <div><div style={{fontSize:16,fontWeight:700,color:'var(--t)'}}>Insights de {c.nombre}</div><div style={{fontSize:12,color:'var(--m)',marginTop:3}}>Periodo seleccionado</div></div>
+            <button type="button" aria-label="Cerrar insights" onClick={()=>setShowClientInsights(false)} style={{width:30,height:30,borderRadius:7,border:'.5px solid var(--bm)',background:'var(--s)',color:'var(--t)',fontSize:20,lineHeight:1,cursor:'pointer'}}>×</button>
+          </div>
+          {clientInsights.map(item=>{
+            const positive=item.delta == null ? null : item.delta >= 0;
+            const color=positive === null ? 'var(--m)' : positive ? '#1D9E75' : '#A32D2D';
+            const value=item.delta == null ? 'Sin variacion disponible' : `${positive ? '↑' : '↓'} ${Math.abs(item.delta)}%`;
+            return <div key={item.label} style={{display:'flex',gap:12,padding:'13px 0',borderTop:'.5px solid var(--b)'}}>
+              <span style={{width:9,height:9,borderRadius:'50%',background:color,marginTop:5,flexShrink:0}}/>
+              <div><div style={{fontSize:13,fontWeight:700,color:'var(--t)'}}>{item.label}</div><div style={{fontSize:12,fontWeight:700,color,marginTop:3}}>{value}</div><div style={{fontSize:12,color:'var(--m)',marginTop:4,lineHeight:1.4}}>{item.description}</div></div>
+            </div>;
+          })}
+        </div>
+      </div>}
 
     </div>
   );

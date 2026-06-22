@@ -99,7 +99,7 @@ export default async function handler(req, res) {
 
       const [rI, rMedia, rAccount, rFollowers] = await Promise.all([
         fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=${metricsTotal}&period=day&metric_type=total_value&since=${igSinceDate}&until=${igUntilDate}&access_token=${token}`),
-        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&since=${igSinceDate}&until=${igUntilDate}&limit=12&access_token=${token}`),
+        fetch(`https://graph.facebook.com/v21.0/${ig_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,permalink,like_count,comments_count&since=${igSinceDate}&until=${igUntilDate}&limit=12&access_token=${token}`),
         fetch(`https://graph.facebook.com/v21.0/${ig_id}?fields=name,username,followers_count,media_count,profile_picture_url&access_token=${token}`),
         fcRangeValid
           ? fetch(`https://graph.facebook.com/v21.0/${ig_id}/insights?metric=follower_count&period=day&since=${fcSince}&until=${fcUntil}&access_token=${token}`)
@@ -114,8 +114,10 @@ export default async function handler(req, res) {
       }
 
       const totals = {};
+      const daily = {};
       (dI.data || []).forEach(m => {
         totals[m.name] = m.total_value?.value ?? 0;
+        daily[m.name] = (m.values || []).map(value => value.value ?? 0);
       });
       totals.followers_total = dAccount.followers_count || 0;
 
@@ -132,6 +134,7 @@ export default async function handler(req, res) {
         type: 'instagram',
         account: dAccount,
         totals,
+        daily,
         posts: dMedia.data || [],
         period: { since: igSinceDate, until: igUntilDate }
       });

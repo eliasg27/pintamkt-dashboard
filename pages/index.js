@@ -19,6 +19,13 @@ const ALL_MODULES=[
 const LC={meta:'Meta Ads',google_ads:'Google Ads',ga4:'GA4',mensajes:'Mensajes',wordpress:'WordPress',search_console:'Search Console'};
 const LOGO_MAP={'bermudez':'bermudez','cubos':'cubos','cristiano':'cristiano','gandolfo':'gandolfo','grand bar':'grandbar','grand':'grandbar','vitta':'lavitta','luly':'luly','pinta':'pinta','samaco':'samaco'};
 function getLogoSlug(c){const n=(c.nombre||'').toLowerCase();for(const[k,v]of Object.entries(LOGO_MAP)){if(n.includes(k))return v;}return c.slug||null;}
+const MODULE_ICON={meta_resumen:'icono_meta_ads.png',meta_rendimiento:'icono_meta_ads.png',meta_resultados:'icono_meta_ads.png',meta_campanas:'icono_meta_ads.png',facebook_organico:'icono_facebook.svg',instagram_organico:'icono_instagram.svg',google_ads:'icono_google_ads.svg',ga4:'google_analitycs.svg',woocommerce:'ecommerce.svg'};
+function ModuleIcon({moduleKey}){
+  const src=MODULE_ICON[moduleKey];
+  if(src)return <img src={`/Logos/Logos_redes_sociales/${src}`} alt="" style={{width:17,height:17,objectFit:'contain',flexShrink:0}}/>;
+  if(moduleKey==='mensajes')return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4.5h12v8H8l-3.5 2.5v-2.5H3v-8z" stroke="#6B6A65" strokeWidth="1.4" strokeLinejoin="round"/></svg>;
+  return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="#6B6A65" strokeWidth="1.4"/><path d="M3.7 9h10.6M9 3c1.7 1.8 2.5 3.8 2.5 6S10.7 13.2 9 15c-1.7-1.8-2.5-3.8-2.5-6S7.3 4.8 9 3z" stroke="#6B6A65" strokeWidth="1.1"/></svg>;
+}
 const DEFAULT_MODS={meta_resumen:true,meta_rendimiento:true,meta_resultados:true,meta_campanas:true,facebook_organico:false,instagram_organico:false,mensajes:false,google_ads:false,ga4:false,wordpress:false};
 function fmt(n,dec=0){if(!n&&n!==0)return'—';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return typeof n==='number'?n.toFixed(dec):String(Math.round(n));}
 function fmtMoney(n){if(!n&&n!==0)return'—';return'$'+fmt(n,0);}
@@ -43,6 +50,7 @@ const[orgLoading,setOrgLoading]=useState(false);
 const[showModal,setShowModal]=useState(false);
 const[showConfig,setShowConfig]=useState(false);
 const[showDeleteConfirm,setShowDeleteConfirm]=useState(false);
+const[showInsights,setShowInsights]=useState(false);
 const[mobileNavOpen,setMobileNavOpen]=useState(false);
 const[newCliente,setNewCliente]=useState({nombre:'',estado:'activo',canales:[],slug:''});
 const[editMods,setEditMods]=useState({});
@@ -52,12 +60,18 @@ const[filterEstado,setFilterEstado]=useState('todos');
 const[sortBy,setSortBy]=useState('nombre');
 const[viewMode,setViewMode]=useState('grid');
 const[pagina,setPagina]=useState(1);
+const[favs,setFavs]=useState({});
+const[openCardMenu,setOpenCardMenu]=useState(null);
 const[activePeriod,setActivePeriod]=useState('30d');
 const POR_PAG=6;
 const chartRef=useRef(null);
 const chartInst=useRef(null);
 
-useEffect(()=>{try{setDarkMode(localStorage.getItem('pintamkt_dark')==='1');}catch{};setDateFrom(ago(30));setDateTo(today());},[]);
+useEffect(()=>{
+  try{setDarkMode(localStorage.getItem('pintamkt_dark')==='1');}catch{};
+  try{setFavs(JSON.parse(localStorage.getItem('pintamkt_favs')||'{}'));}catch{};
+  setDateFrom(ago(30));setDateTo(today());
+},[]);
 useEffect(()=>{load();},[]);
 useEffect(()=>{
   if(!current||!dateFrom||!dateTo)return;
@@ -126,7 +140,21 @@ async function saveModulos(){
 }
 function openConfig(){setEditMods({...DEFAULT_MODS,...(current.modulos||{})});setShowConfig(true);}
 function openClient(c){setCurrent(c);setPage('client');}
+function openClientAndConfig(c){setCurrent(c);setPage('client');setEditMods({...DEFAULT_MODS,...(c.modulos||{})});setShowConfig(true);}
+function toggleFav(e,id){e.stopPropagation();setFavs(p=>{const n={...p,[id]:!p[id]};try{localStorage.setItem('pintamkt_favs',JSON.stringify(n));}catch{};return n;});}
 function toggleCanal(c){setNewCliente(p=>({...p,canales:p.canales.includes(c)?p.canales.filter(x=>x!==c):[...p.canales,c]}));}
+function exportOverview(){
+  const safe=v=>{const value=String(v??'');return /^[=+\-@]/.test(value)?`'${value}`:value;};
+  const rows=clientes
+    .filter(c=>filterEstado==='todos'||c.estado===filterEstado)
+    .filter(c=>!search||c.nombre.toLowerCase().includes(search.toLowerCase()))
+    .map(c=>[c.nombre,c.estado,(c.canales||[]).join(', '),c.meta_ad_account_id?'Sí':'No',c.ig_account_id?'Sí':'No',c.fb_page_id?'Sí':'No']);
+  const csv=[['Cliente','Estado','Canales','Meta Ads','Instagram','Facebook'],...rows]
+    .map(row=>row.map(value=>`"${safe(value).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const file=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(file);const link=document.createElement('a');
+  link.href=url;link.download=`pinta-clientes-${dateFrom||'inicio'}-${dateTo||'fin'}.csv`;link.click();URL.revokeObjectURL(url);
+}
 
 const mods={...DEFAULT_MODS,...(current?.modulos||{})};
 const t=metaData?.totals||{};const dl=metaData?.deltas||{};const camps=metaData?.campaigns||[];
@@ -282,7 +310,7 @@ return(<><Head><title>Pintamkt</title></Head>
           <input type="date" className="date-inp" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} max={dateTo}/>
           <span style={{fontSize:12,color:'var(--f)'}}>→</span>
           <input type="date" className="date-inp" value={dateTo} onChange={e=>setDateTo(e.target.value)} min={dateFrom} max={today()}/>
-          <button className="bn" style={{background:'var(--s)',padding:'7px 14px'}}>
+          <button className="bn" onClick={exportOverview} style={{background:'var(--s)',padding:'7px 14px'}}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v7M3.5 6l3 3 3-3M2 11.5h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Exportar
           </button>
@@ -357,7 +385,7 @@ return(<><Head><title>Pintamkt</title></Head>
             const paginaActual=Math.min(pagina,totalPags);
             const listaPag=lista.slice((paginaActual-1)*POR_PAG,paginaActual*POR_PAG);
             return(
-              <div>
+              <div onClick={()=>setOpenCardMenu(null)}>
               <div className={viewMode==='grid'?'cg':''} style={viewMode==='list'?{display:'flex',flexDirection:'column',gap:6}:{}}>
                 {listaPag.map(c=>{
                   const sc=c.estado==='activo'?'#1D9E75':c.estado==='revisar'?'#EF9F27':'#A32D2D';
@@ -383,8 +411,42 @@ return(<><Head><title>Pintamkt</title></Head>
                           <span style={{fontSize:14,fontWeight:600}}>{c.nombre}</span>
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{color:'var(--f)',cursor:'pointer'}}><path d="M7 1l1.6 3.3 3.6.5-2.6 2.5.6 3.6L7 9.3l-3.2 1.7.6-3.6L1.8 4.8l3.6-.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{color:'var(--f)',cursor:'pointer'}}><circle cx="7" cy="3" r="1" fill="currentColor"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="11" r="1" fill="currentColor"/></svg>
+                          {/* Estrella favorito */}
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                            style={{color:favs[c.id]?'#EBE300':'var(--f)',cursor:'pointer',transition:'color .15s',flexShrink:0}}
+                            onClick={e=>toggleFav(e,c.id)}>
+                            <path d="M7 1l1.6 3.3 3.6.5-2.6 2.5.6 3.6L7 9.3l-3.2 1.7.6-3.6L1.8 4.8l3.6-.5z"
+                              stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"
+                              fill={favs[c.id]?'currentColor':'none'}/>
+                          </svg>
+                          {/* Menú 3 puntos */}
+                          <div style={{position:'relative'}}>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                              style={{color:'var(--f)',cursor:'pointer',display:'block'}}
+                              onClick={e=>{e.stopPropagation();setOpenCardMenu(openCardMenu===c.id?null:c.id);}}>
+                              <circle cx="7" cy="3" r="1" fill="currentColor"/>
+                              <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                              <circle cx="7" cy="11" r="1" fill="currentColor"/>
+                            </svg>
+                            {openCardMenu===c.id&&(
+                              <div style={{position:'absolute',right:0,top:20,background:'var(--s)',border:'.5px solid var(--bm)',borderRadius:10,boxShadow:'0 4px 20px rgba(0,0,0,.18)',zIndex:300,minWidth:168,overflow:'hidden'}}
+                                onClick={e=>e.stopPropagation()}>
+                                {[
+                                  {label:'Ver Dashboard',action:()=>{openClient(c);setOpenCardMenu(null);}},
+                                  {label:'Ver Reporte',action:()=>{window.open('/'+c.slug,'_blank');setOpenCardMenu(null);}},
+                                  {label:'Copiar link',action:()=>{navigator.clipboard.writeText(window.location.origin+'/'+c.slug).then(()=>alert('Link copiado!'));setOpenCardMenu(null);}},
+                                  {label:'Editar cliente',action:()=>{openClientAndConfig(c);setOpenCardMenu(null);}},
+                                ].map(({label,action})=>(
+                                  <div key={label} onClick={action}
+                                    style={{padding:'9px 14px',fontSize:12,color:'var(--t)',cursor:'pointer'}}
+                                    onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
+                                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                                    {label}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {/* Health */}
@@ -413,11 +475,11 @@ return(<><Head><title>Pintamkt</title></Head>
                       {/* Footer actions */}
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:'.5px solid var(--b)',paddingTop:8,gap:4}}>
                         {[
-                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="7" y="1" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="1" y="7" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="7" y="7" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/></svg>,label:'Ver Dashboard'},
-                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h8a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.1"/><path d="M3 4h6M3 6h4M3 8h5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/></svg>,label:'Reporte'},
-                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.1"/><path d="M4 6.7l4 2.2M4 5.3l4-2.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/></svg>,label:'Compartir'},
-                        ].map(({icon,label})=>(
-                          <button key={label} onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,fontWeight:500,color:'var(--m)',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',borderRadius:4}}>
+                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="7" y="1" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="1" y="7" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/><rect x="7" y="7" width="4" height="4" rx=".8" fill="currentColor" opacity=".7"/></svg>,label:'Ver Dashboard',action:()=>openClient(c)},
+                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 1h8a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.1"/><path d="M3 4h6M3 6h4M3 8h5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/></svg>,label:'Reporte',action:()=>window.open('/'+c.slug,'_blank')},
+                          {icon:<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="9.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/><circle cx="9.5" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.1"/><circle cx="2.5" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.1"/><path d="M4 6.7l4 2.2M4 5.3l4-2.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/></svg>,label:'Compartir',action:()=>navigator.clipboard.writeText(window.location.origin+'/'+c.slug).then(()=>alert('Link copiado!'))},
+                        ].map(({icon,label,action})=>(
+                          <button key={label} onClick={e=>{e.stopPropagation();action();}} style={{display:'flex',alignItems:'center',gap:4,fontSize:10,fontWeight:500,color:'var(--m)',background:'none',border:'none',cursor:'pointer',padding:'2px 4px',borderRadius:4}}>
                             {icon}{label}
                           </button>
                         ))}
@@ -473,21 +535,9 @@ return(<><Head><title>Pintamkt</title></Head>
                 </div>
               );
             })}
-            <button style={{width:'100%',marginTop:'.5rem',padding:'9px',borderRadius:8,border:'none',background:'#FFF8C5',color:'#7A6200',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+            <button onClick={()=>setShowInsights(true)} style={{width:'100%',marginTop:'.5rem',padding:'9px',borderRadius:8,border:'none',background:'#FFF8C5',color:'#7A6200',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
               Ver todos los insights <span style={{fontSize:14}}>›</span>
             </button>
-          </div>
-
-          {/* Card: ¿Necesitás ayuda? */}
-          <div style={{background:'#111110',borderRadius:14,padding:'1.1rem',display:'flex',alignItems:'center',gap:12,overflow:'hidden',position:'relative'}}>
-            <div style={{flex:1,zIndex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#fff',marginBottom:4}}>¿Necesitás ayuda?</div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,.45)',lineHeight:1.5,marginBottom:'1rem'}}>Nuestro equipo está para acompañarte.</div>
-              <button style={{padding:'7px 14px',borderRadius:8,background:'#EBE300',border:'none',color:'#111110',fontSize:11,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
-                Contactar equipo <span style={{fontSize:13}}>›</span>
-              </button>
-            </div>
-            <img src="/Logos/paneles_de_abeja.png" alt="" style={{width:80,height:80,objectFit:'contain',flexShrink:0,opacity:.9}}/>
           </div>
 
         </div>
@@ -518,20 +568,6 @@ return(<><Head><title>Pintamkt</title></Head>
             <div style={{display:'flex',alignItems:'center',gap:6}}>
               <span style={{fontSize:18,fontWeight:700}}>{current.nombre}</span>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#EBE300"/><path d="M5 8l2 2 4-4" stroke="#111110" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div style={{display:'flex',gap:6,marginTop:5,flexWrap:'wrap'}}>
-              {current.meta_ad_account_id&&<span className="ch-tag">
-                <img src="/Logos/Logos_redes_sociales/icono_meta_ads.png" alt="" style={{width:12,height:12,objectFit:'contain'}}/>
-                Meta Ads
-              </span>}
-              {current.fb_page_id&&<span className="ch-tag">
-                <img src="/Logos/Logos_redes_sociales/icono_facebook.svg" alt="" style={{width:12,height:12,objectFit:'contain'}}/>
-                Facebook
-              </span>}
-              {current.ig_account_id&&<span className="ch-tag">
-                <img src="/Logos/Logos_redes_sociales/icono_instagram.svg" alt="" style={{width:12,height:12,objectFit:'contain'}}/>
-                Instagram
-              </span>}
             </div>
           </div>
         </div>
@@ -582,6 +618,26 @@ return(<><Head><title>Pintamkt</title></Head>
   </div>
 </div>
 
+{showInsights&&<div className="mb" onClick={e=>e.target===e.currentTarget&&setShowInsights(false)}>
+  <div className="mo" style={{width:620}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:'1rem'}}>
+      <div className="mt" style={{marginBottom:0}}>Todos los insights</div>
+      <button className="bb" aria-label="Cerrar" onClick={()=>setShowInsights(false)}>×</button>
+    </div>
+    {[
+      ['La Vitta','+431 seguidores nuevos','Excelente crecimiento en la última semana.','#1D9E75'],
+      ['Bermudez Moya','ROAS +18%','Tus campañas están generando más resultados.','#1D9E75'],
+      ['Grand Bar','CTR -8%','El CTR está por debajo del objetivo. Revisar creatividad.','#EF9F27'],
+      ['Pinta MKT','Interacciones -35%','Menos interacciones que la semana anterior.','#A32D2D'],
+    ].map(([client,metric,message,color])=>(
+      <div key={client} style={{display:'flex',gap:12,padding:'12px 0',borderBottom:'.5px solid var(--b)'}}>
+        <span style={{width:8,height:8,borderRadius:'50%',background:color,marginTop:6,flexShrink:0}}/>
+        <div><div style={{fontSize:13,fontWeight:700,color:'var(--t)'}}>{client}</div><div style={{fontSize:12,fontWeight:700,color,marginTop:3}}>{metric}</div><div style={{fontSize:12,color:'var(--m)',marginTop:4}}>{message}</div></div>
+      </div>
+    ))}
+  </div>
+</div>}
+
 {showConfig&&current&&<div className="mb" onClick={e=>e.target===e.currentTarget&&setShowConfig(false)}>
   <div className="mo mo-lg">
     <div className="mt">⚙ Módulos — {current.nombre}</div>
@@ -589,7 +645,7 @@ return(<><Head><title>Pintamkt</title></Head>
       <div className="toggle-group">{group}</div>
       {ALL_MODULES.filter(m=>m.group===group).map(m=>(
         <div key={m.key} className="toggle-row">
-          <div style={{fontSize:13}}>{m.icon} {m.label}</div>
+          <div style={{fontSize:13,display:'flex',alignItems:'center',gap:8}}><ModuleIcon moduleKey={m.key}/>{m.label}</div>
           <div className={`toggle ${editMods[m.key]?'on':'off'}`} onClick={()=>setEditMods(p=>({...p,[m.key]:!p[m.key]}))}>
             <div className="toggle-knob"/>
           </div>
