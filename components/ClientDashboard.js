@@ -125,7 +125,7 @@ function TipsFooter() {
 }
 
 
-export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt }) {
+export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt, activeCh: propCh, onActiveCh }) {
   const [md, setMd] = useState(null);
   const [fb, setFb] = useState(null);
   const [ig, setIg] = useState(null);
@@ -147,7 +147,9 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
   const [drillLoading, setDrillLoading] = useState(false);
   const [vizTypes, setVizTypes] = useState({});
   const [openMenu, setOpenMenu] = useState(null);
-  const [activeCh, setActiveCh] = useState(null);
+  const [_activeCh, _setActiveCh] = useState(null);
+  const activeCh = propCh !== undefined ? propCh : _activeCh;
+  const setActiveCh = (ch) => { propCh !== undefined ? onActiveCh?.(ch) : _setActiveCh(ch); };
   const [showClientInsights, setShowClientInsights] = useState(false);
   const [detailModal, setDetailModal] = useState(null);
   const ref = useRef(null);

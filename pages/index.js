@@ -1,7 +1,4 @@
-﻿import{useEffect,useState,useRef}from'react';import{createClient}from'@supabase/supabase-js';import Head from'next/head';import ClientDashboard from'../components/ClientDashboard';
-const SUPABASE_URL='https://tjpwiwtwapxspdtmvjbo.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqcHdpd3R3YXB4c3BkdG12amJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NDU5NjksImV4cCI6MjA5MzMyMTk2OX0.AtlQgeRcEPxjxg-epFkG-pd_BSttJEtbQE-cOy3LBxY';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+﻿import{useEffect,useState,useRef}from'react';import{useRouter}from'next/router';import Head from'next/head';import ClientDashboard from'../components/ClientDashboard';import{useAuth}from'../context/AuthContext';import{sb}from'../lib/supabase';
 
 const ALL_MODULES=[
   {key:'meta_resumen',label:'Meta Ads — Resumen',group:'Meta Ads',icon:'📢'},
@@ -35,7 +32,20 @@ function ago(n){const d=new Date();d.setDate(d.getDate()-n);return fmtDate(d);}
 function today(){return fmtDate(new Date());}
 function Delta({v}){if(v===null||v===undefined)return null;const up=v>=0;return<span style={{fontSize:10,padding:'1px 6px',borderRadius:20,background:up?'#E1F5EE':'#FBEAEA',color:up?'#0F6E56':'#A32D2D',marginLeft:6}}>{up?'↑':'↓'}{Math.abs(v)}%</span>;}
 
+const SIDEBAR_CHANNELS=[
+  {key:'meta',       label:'Meta Ads',        icon:'icono_meta_ads.png'},
+  {key:'instagram',  label:'Instagram',        icon:'icono_instagram.svg'},
+  {key:'facebook',   label:'Facebook',         icon:'icono_facebook.svg'},
+  {key:'ga4',        label:'Google Analytics', icon:'google_analitycs.svg'},
+  {key:'googleads',  label:'Google Ads',       icon:'icono_google_ads.svg'},
+  {key:'woocommerce',label:'Ecommerce',        icon:'ecommerce.svg'},
+  {key:'linkedin',   label:'LinkedIn',         icon:'linkedin.png'},
+  {key:'bot',        label:'Bot',              icon:'bot.svg'},
+];
+
 export default function Dashboard(){
+const router=useRouter();
+const{session,profile,loading:authLoading,signOut,updateProfile}=useAuth();
 const[darkMode,setDarkMode]=useState(false);
 const[clientes,setClientes]=useState([]);
 const[current,setCurrent]=useState(null);
@@ -63,6 +73,10 @@ const[pagina,setPagina]=useState(1);
 const[favs,setFavs]=useState({});
 const[openCardMenu,setOpenCardMenu]=useState(null);
 const[activePeriod,setActivePeriod]=useState('30d');
+const[activeCh,setActiveCh]=useState(null);
+const[showSettings,setShowSettings]=useState(false);
+const[editNombre,setEditNombre]=useState('');
+const[savingName,setSavingName]=useState(false);
 const POR_PAG=6;
 const chartRef=useRef(null);
 const chartInst=useRef(null);
@@ -79,6 +93,12 @@ useEffect(()=>{
   if(current.fb_page_id||current.ig_account_id)loadOrganic();
 },[current,dateFrom,dateTo]);
 useEffect(()=>{if(metaData?.daily&&chartRef.current)renderChart();},[metaData,activeTab]);
+useEffect(()=>{
+  if(authLoading)return;
+  if(!session){router.push('/login');return;}
+  if(profile&&profile.role!=='admin'){router.push('/dashboard');return;}
+  if(profile?.nombre)setEditNombre(profile.nombre);
+},[authLoading,session,profile]);
 
 async function load(){
   const{data}=await sb.from('clientes').select('*').order('nombre');
@@ -139,8 +159,8 @@ async function saveModulos(){
   setShowConfig(false);
 }
 function openConfig(){setEditMods({...DEFAULT_MODS,...(current.modulos||{})});setShowConfig(true);}
-function openClient(c){setCurrent(c);setPage('client');}
-function openClientAndConfig(c){setCurrent(c);setPage('client');setEditMods({...DEFAULT_MODS,...(c.modulos||{})});setShowConfig(true);}
+function openClient(c){setCurrent(c);setPage('client');setActiveCh(null);}
+function openClientAndConfig(c){setCurrent(c);setPage('client');setActiveCh(null);setEditMods({...DEFAULT_MODS,...(c.modulos||{})});setShowConfig(true);}
 function toggleFav(e,id){e.stopPropagation();setFavs(p=>{const n={...p,[id]:!p[id]};try{localStorage.setItem('pintamkt_favs',JSON.stringify(n));}catch{};return n;});}
 function toggleCanal(c){setNewCliente(p=>({...p,canales:p.canales.includes(c)?p.canales.filter(x=>x!==c):[...p.canales,c]}));}
 function exportOverview(){
@@ -200,6 +220,8 @@ function OverviewSpark({data,color}){
     </div>
   );
 }
+
+if(authLoading||!session)return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#111110'}}><div style={{width:24,height:24,border:'2px solid rgba(235,227,0,.18)',borderTopColor:'#EBE300',borderRadius:'50%',animation:'spin .7s linear infinite'}}/><style>{`*{margin:0;padding:0}body{background:#111110}@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>);
 
 return(<><Head><title>Pintamkt</title></Head>
 <style dangerouslySetInnerHTML={{ __html: `*{box-sizing:border-box;margin:0;padding:0}:root{--bg:#f8f7f4;--s:#fff;--b:rgba(0,0,0,.09);--bm:rgba(0,0,0,.15);--t:#1a1a18;--m:#6b6a65;--f:#9c9a92;--a:#EBE300;--ad:#0F6E56}.dark{--bg:#111110;--s:#1c1c1a;--b:rgba(255,255,255,.08);--bm:rgba(255,255,255,.15);--t:#e8e6e0;--m:#9c9a92;--f:#6b6a65}body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--t);font-size:14px}.tb{position:sticky;top:0;z-index:100;background:var(--s);border-bottom:.5px solid var(--b);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:52px;gap:10px}.lo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}.ld{width:8px;height:8px;border-radius:50%;background:var(--a)}.lay{display:flex;height:100vh}.sb{width:220px;min-width:220px;background:#111110;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}.ss{padding:8px 1rem 4px;font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--f);text-transform:uppercase}.ni{display:flex;align-items:center;gap:9px;padding:7px 1rem;font-size:13px;color:var(--m);cursor:pointer;border-right:2px solid transparent}.ni:hover{background:var(--bg)}.ni.ac{background:var(--bg);font-weight:500;border-right-color:var(--a)}.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.dv{height:.5px;background:var(--b);margin:8px 1rem}.mn{flex:1;overflow-y:auto;padding:0}.pt{font-size:18px;font-weight:600;margin-bottom:4px}.ps{font-size:12px;color:var(--f);margin-bottom:1.25rem}.kg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem}.kc{background:var(--s);border:.5px solid var(--b);border-radius:10px;padding:1rem 1.1rem}.kl{font-size:11px;color:var(--f);margin-bottom:6px}.kv{font-size:24px;font-weight:600}.cg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cc{background:var(--s);border:.5px solid var(--b);border-radius:14px;padding:1rem 1.1rem;cursor:pointer;transition:border-color .15s}.cc:hover{border-color:var(--bm)}.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cn{font-size:14px;font-weight:600}.stp{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--f)}.sd{width:6px;height:6px;border-radius:50%}.dg{background:#1D9E75}.dy{background:#EF9F27}.dgr{background:#888}.ct{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}.tg{font-size:10px;padding:2px 8px;border-radius:20px;border:.5px solid var(--bm);color:var(--m);background:var(--bg)}.cf{border-top:.5px solid var(--b);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:10px;color:var(--f)}.bn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:6px 14px;border-radius:8px;border:.5px solid var(--bm);background:var(--s);color:var(--t);cursor:pointer}.bn:hover{background:var(--bg)}.bp{background:var(--a);border-color:var(--a);color:#111110}.bp:hover{background:#C8BC00}.bdanger{background:#FBEAEA;border-color:#F4C0C0;color:#A32D2D}.dh{display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding-bottom:1rem;border-bottom:.5px solid var(--b)}.dn{font-size:18px;font-weight:600}.ds{font-size:12px;color:var(--f)}.bb{background:none;border:.5px solid var(--bm);cursor:pointer;color:var(--m);font-size:16px;padding:5px 10px;border-radius:8px}.di{width:18px;height:18px;border:2px solid var(--bm);border-top-color:var(--a);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.date-inp{font-size:12px;padding:7px 12px;border-radius:8px;border:.5px solid var(--bm);background:var(--s);color:var(--t)}.date-btn{font-size:11px;padding:5px 10px;border-radius:8px;border:.5px solid var(--bm);background:var(--bg);color:var(--m);cursor:pointer}.tabs{display:flex;gap:0;margin-bottom:1rem;border-bottom:.5px solid var(--b);overflow-x:auto}.tab{font-size:12px;padding:7px 16px;cursor:pointer;color:var(--m);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0}.tab.ac{color:var(--a);border-bottom-color:var(--a);font-weight:500}.kpi-big{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem}.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem}.kpi-box{background:var(--s);border:.5px solid var(--b);border-radius:10px;padding:.9rem 1rem}.kpi-lbl{font-size:10px;color:var(--f);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}.kpi-val{font-size:22px;font-weight:600;letter-spacing:-.02em}.kpi-sub{font-size:10px;color:var(--f);margin-top:3px;display:flex;align-items:center;gap:4px}.cw{position:relative;width:100%;height:180px;margin-bottom:.5rem}.wi{background:var(--s);border:.5px solid var(--b);border-radius:14px;padding:1rem 1.1rem;margin-bottom:10px}.wh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.wt{font-size:11px;font-weight:600;color:var(--f);letter-spacing:.04em;text-transform:uppercase}.camp-table{width:100%;border-collapse:collapse;font-size:12px}.camp-table th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--f);border-bottom:.5px solid var(--b);text-transform:uppercase}.camp-table td{padding:8px 10px;border-bottom:.5px solid var(--b)}.camp-table tr:last-child td{border-bottom:none}.camp-table tr:hover td{background:var(--bg)}.posts-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.post-card{background:var(--s);border:.5px solid var(--b);border-radius:10px;overflow:hidden}.post-img{width:100%;height:100px;object-fit:cover;background:var(--bg)}.post-body{padding:8px}.post-metric{display:flex;justify-content:space-between;font-size:11px;margin-top:4px;color:var(--f)}.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:.5px solid var(--b)}.toggle-row:last-child{border-bottom:none}.toggle-group{font-size:10px;color:var(--f);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:12px}.toggle{width:36px;height:20px;border-radius:10px;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0}.toggle.on{background:var(--a)}.toggle.off{background:var(--bm)}.toggle-knob{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}.toggle.on .toggle-knob{left:18px}.toggle.off .toggle-knob{left:2px}.mod-count{font-size:10px;padding:2px 8px;border-radius:20px;background:#E1F5EE;color:#0F6E56;margin-left:8px}.mb{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center}.mo{background:var(--s);border-radius:14px;padding:1.5rem;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}.mo-lg{width:560px}.mt{font-size:16px;font-weight:600;margin-bottom:1rem}.fg{margin-bottom:14px}.fl{font-size:11px;font-weight:600;color:var(--f);display:block;margin-bottom:6px;text-transform:uppercase}.fi{width:100%;padding:8px 12px;border-radius:8px;border:.5px solid var(--bm);background:var(--bg);color:var(--t);font-size:13px}.chg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.co{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;border:.5px solid var(--bm);cursor:pointer;font-size:12px;background:var(--bg)}.co.sel{border-color:var(--a);background:#E1F5EE;color:#0F6E56}.mf{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem}.danger-zone{margin-top:1.5rem;padding-top:1rem;border-top:.5px solid #F4C0C0}.danger-title{font-size:11px;font-weight:600;color:#A32D2D;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}.conn-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.conn-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}.sb-hd{padding:.875rem 1rem;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}.sb-logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.02em}.sb .ss{color:rgba(255,255,255,.32)}.sb .ni{color:rgba(255,255,255,.6)}.sb .ni:hover{background:rgba(255,255,255,.05)}.sb .ni.ac{background:rgba(255,255,255,.08);color:#fff;font-weight:500;border-right-color:#1D9E75}.sb .dv{background:rgba(255,255,255,.07);margin:6px 1rem}.sb-nav{flex:1;overflow-y:auto;padding:.5rem 0;scrollbar-width:none}.sb-nav::-webkit-scrollbar{display:none}.sb-promo{margin:.75rem;background:#1c1b17;border:1px solid rgba(255,210,0,.15);border-radius:12px;padding:.85rem .75rem;display:flex;gap:8px;align-items:center;flex-shrink:0;position:relative;overflow:hidden}.sb-promo-body{flex:1}.sb-promo-title{font-size:12px;font-weight:700;color:#FFD600;margin-bottom:3px}.sb-promo-text{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}.sb-promo-bee{font-size:28px;flex-shrink:0;line-height:1}.sb-user{display:flex;align-items:center;gap:8px;padding:.7rem 1rem;border-top:1px solid rgba(255,255,255,.07);cursor:pointer;flex-shrink:0}.sb-user:hover{background:rgba(255,255,255,.04)}.sb-av{width:30px;height:30px;border-radius:50%;background:#EBE300;color:#111110;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}.sb-un{flex:1}.sb-un-name{font-size:12px;font-weight:500;color:rgba(255,255,255,.85)}.sb-un-role{font-size:10px;color:rgba(255,255,255,.35)}.sb-arr{font-size:14px;color:rgba(255,255,255,.25)}.sb-top{display:flex;align-items:center;gap:9px;padding:9px 12px;margin:6px 8px 2px;border-radius:10px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.6);font-weight:500}.sb-top:hover{background:rgba(255,255,255,.08)}.sb-top.ac{background:rgba(255,255,255,.1);color:#fff}.mn-hd{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:.5px solid var(--b);flex-shrink:0;gap:16px;background:var(--s)}.mn-title{font-size:22px;font-weight:700;letter-spacing:-.02em}.mn-sub{font-size:12px;color:var(--f);margin-top:2px}.mn-scroll{flex:1;overflow-y:auto;padding:1.5rem}.mn-chip{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--b);color:var(--m);letter-spacing:.04em;text-transform:uppercase;flex-shrink:0;white-space:nowrap}.ch-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:6px;border:.5px solid var(--b);color:var(--m);background:var(--bg)}.ch-tag svg{width:12px;height:12px;flex-shrink:0}` }} />
@@ -273,10 +295,29 @@ return(<><Head><title>Pintamkt</title></Head>
         <span className="dot" style={{background:c.estado==='activo'?'#1D9E75':c.estado==='revisar'?'#EF9F27':'#A32D2D'}}/>{c.nombre}
       </div>)}
       <div className="dv"/>
+      <div className="ss">Canales</div>
+      {SIDEBAR_CHANNELS.map(ch=>{
+        const isActive=activeCh===ch.key&&page==='client';
+        const enabled=page==='client';
+        return(
+          <div key={ch.key}
+            className={`ni${isActive?' ac':''}`}
+            onClick={()=>{if(enabled)setActiveCh(activeCh===ch.key?null:ch.key);}}
+            style={{opacity:enabled?1:0.35,cursor:enabled?'pointer':'default',borderRightColor:isActive?'#EBE300':'transparent'}}>
+            <img src={`/Logos/Logos_redes_sociales/${ch.icon}`} alt="" style={{width:16,height:16,objectFit:'contain',flexShrink:0}}/>
+            <span>{ch.label}</span>
+          </div>
+        );
+      })}
+      <div className="dv"/>
       <div className="ss">Agencia</div>
       <div className="ni" onClick={()=>setShowModal(true)}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{flexShrink:0}}><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/><path d="M7 4.5v5M4.5 7h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
         Nuevo cliente
+      </div>
+      <div className="ni" onClick={()=>{setEditNombre(profile?.nombre||'Equipo Pinta');setShowSettings(true);}}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{flexShrink:0}}><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 7.5a2.5 2.5 0 015 0" stroke="currentColor" strokeWidth="1.1"/><circle cx="5.5" cy="5" r="1" fill="currentColor"/><circle cx="8.5" cy="5" r="1" fill="currentColor"/></svg>
+        Configuración
       </div>
     </div>
     <div className="sb-promo">
@@ -286,10 +327,10 @@ return(<><Head><title>Pintamkt</title></Head>
       </div>
       <img src="/Logos/abeja_numero_uno.svg" alt="" style={{position:'absolute',bottom:-25,right:-25,width:110,height:110,objectFit:'contain'}} />
     </div>
-    <div className="sb-user">
-      <div className="sb-av">EA</div>
+    <div className="sb-user" onClick={()=>{setEditNombre(profile?.nombre||'Equipo Pinta');setShowSettings(true);}} style={{cursor:'pointer'}}>
+      <div className="sb-av">{(profile?.nombre||'EA').slice(0,2).toUpperCase()}</div>
       <div className="sb-un">
-        <div className="sb-un-name" style={{color:'white'}}>Equipo Pinta</div>
+        <div className="sb-un-name" style={{color:'white'}}>{profile?.nombre||'Equipo Pinta'}</div>
         <div className="sb-un-role">Administrador</div>
       </div>
       <span className="sb-arr">›</span>
@@ -613,7 +654,7 @@ return(<><Head><title>Pintamkt</title></Head>
         </div>
 
       </div>
-      <ClientDashboard client={current} dateFrom={dateFrom} dateTo={dateTo} />
+      <ClientDashboard client={current} dateFrom={dateFrom} dateTo={dateTo} activeCh={activeCh} onActiveCh={setActiveCh} />
     </div>}
   </div>
 </div>
@@ -683,7 +724,36 @@ return(<><Head><title>Pintamkt</title></Head>
     <div className="fg"><label className="fl">Canales</label><div className="chg">{Object.entries(LC).map(([k,v])=><div key={k} className={`co${newCliente.canales.includes(k)?' sel':''}`} onClick={()=>toggleCanal(k)}>{v}</div>)}</div></div>
     <div className="mf"><button className="bn" onClick={()=>setShowModal(false)}>Cancelar</button><button className="bn bp" onClick={saveCliente}>Guardar</button></div>
   </div>
-</div>}  </div>
+</div>}
+
+{showSettings&&<div className="mb" onClick={e=>e.target===e.currentTarget&&setShowSettings(false)}>
+  <div className="mo" style={{background:'#1a1a18',border:'1px solid rgba(255,255,255,.08)',maxWidth:400}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem'}}>
+      <span style={{fontSize:16,fontWeight:700,color:'#fff'}}>Configuración</span>
+      <button onClick={()=>setShowSettings(false)} style={{background:'none',border:'none',color:'rgba(255,255,255,.4)',fontSize:22,cursor:'pointer',lineHeight:1,padding:'0 4px'}}>×</button>
+    </div>
+    <div style={{marginBottom:14}}>
+      <label style={{display:'block',fontSize:11,fontWeight:600,color:'rgba(255,255,255,.35)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:7}}>Nombre del equipo</label>
+      <input value={editNombre} onChange={e=>setEditNombre(e.target.value)}
+        style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',color:'#fff',fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+    </div>
+    <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginBottom:'1.25rem'}}>
+      <button onClick={()=>setShowSettings(false)} style={{padding:'9px 16px',borderRadius:8,border:'1px solid rgba(255,255,255,.1)',background:'transparent',color:'rgba(255,255,255,.5)',fontSize:13,cursor:'pointer'}}>Cancelar</button>
+      <button disabled={savingName} onClick={async()=>{setSavingName(true);await updateProfile({nombre:editNombre.trim()});setSavingName(false);setShowSettings(false);}}
+        style={{padding:'9px 20px',borderRadius:8,border:'none',background:savingName?'rgba(235,227,0,.4)':'#EBE300',color:'#111110',fontSize:13,fontWeight:700,cursor:savingName?'not-allowed':'pointer'}}>
+        {savingName?'Guardando...':'Guardar'}
+      </button>
+    </div>
+    <div style={{paddingTop:'1rem',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+      <button onClick={async()=>{await signOut();router.push('/login');}}
+        style={{width:'100%',padding:'9px',borderRadius:8,border:'1px solid rgba(229,57,53,.25)',background:'rgba(229,57,53,.07)',color:'#ef9a9a',fontSize:13,cursor:'pointer'}}>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+</div>}
+
+</div>
 </>);}
 
 // force rebuild Fri Jun 12 21:38:00 UTC 2026
