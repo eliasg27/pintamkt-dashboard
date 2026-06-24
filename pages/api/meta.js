@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       ),
       fetch(
         `https://graph.facebook.com/v21.0/${account_id}/insights` +
-        `?fields=campaign_id,campaign_name,impressions,clicks,spend,cpm,cpc,ctr,actions` +
+        `?fields=campaign_id,campaign_name,impressions,clicks,spend,reach,cpm,cpc,ctr,actions` +
         `&time_range=${timeRange}&level=campaign&limit=50&access_token=${token}`
       ),
       fetch(
@@ -52,7 +52,8 @@ export default async function handler(req, res) {
       ),
       fetch(
         `https://graph.facebook.com/v21.0/${account_id}/campaigns` +
-        `?fields=id,objective,status,effective_status&limit=200&access_token=${token}`
+        `?fields=id,objective,status,effective_status,adsets.limit(5){optimization_goal,destination_type,promoted_object}` +
+        `&limit=200&access_token=${token}`
       ),
     ]);
 
@@ -70,51 +71,58 @@ export default async function handler(req, res) {
     const camps = dCampaigns.data || [];
     const rowsPrev = dPrev.data || [];
 
-    // Mapa de objective/status por campaign_id
+    // Mapa de objective/status/adsets por campaign_id
     const campMetaById = {};
     for (const cm of (dCampMeta.data || [])) {
-      campMetaById[cm.id] = { objective: cm.objective, status: cm.status, effective_status: cm.effective_status };
+      campMetaById[cm.id] = {
+        objective: cm.objective,
+        status: cm.status,
+        effective_status: cm.effective_status,
+        adsets: (cm.adsets?.data || []),
+      };
     }
 
-    // Mapeo objective → action_type(s) que cuentan como "Resultado"
-    // Soporta tanto objectives clásicos como los nuevos OUTCOME_*
-    const OBJECTIVE_TO_RESULT = {
-      MESSAGES:                ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection'],
-      OUTCOME_ENGAGEMENT:      ['onsite_conversion.messaging_conversation_started_7d', 'post_engagement'],
-      LEAD_GENERATION:         ['lead', 'onsite_conversion.lead_grouped'],
-      OUTCOME_LEADS:           ['lead', 'onsite_conversion.lead_grouped'],
-      CONVERSIONS:             ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'],
-      OUTCOME_SALES:           ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'],
-      LINK_CLICKS:             ['link_click'],
-      OUTCOME_TRAFFIC:         ['link_click'],
-      POST_ENGAGEMENT:         ['post_engagement'],
-      PAGE_LIKES:              ['like'],
-      VIDEO_VIEWS:             ['video_view'],
-      OUTCOME_AWARENESS:       ['post_engagement'],
-      OUTCOME_APP_PROMOTION:   ['app_install', 'mobile_app_install'],
-      APP_INSTALLS:            ['app_install', 'mobile_app_install'],
-      REACH:                   [], // reach es métrica, no action
-      BRAND_AWARENESS:         [],
+    // Mapa optimization_goal → { types: [action_types que cuentan], label: string, useMetric?: 'reach' | 'impressions' }
+    // optimization_goal es el indicador MÁS preciso del resultado real de Meta
+    const OPT_GOAL_MAP = {
+      REACH:                          { useMetric: 'reach',       label: 'alcance' },
+      IMPRESSIONS:                    { useMetric: 'impressions', label: 'impresiones' },
+      LINK_CLICKS:                    { types: ['link_click'],                                                      label: 'clics al enlace' },
+      LANDING_PAGE_VIEWS:             { types: ['landing_page_view'],                                                label: 'vistas de página' },
+      POST_ENGAGEMENT:                { types: ['post_engagement'],                                                  label: 'interacciones' },
+      PAGE_LIKES:                     { types: ['like'],                                                             label: 'me gusta' },
+      THRUPLAY:                       { types: ['video_thruplay_watched_actions', 'video_view'],                     label: 'reproducciones' },
+      VIDEO_VIEWS:                    { types: ['video_view'],                                                       label: 'reproducciones' },
+      ONSITE_CONVERSIONS:             { types: ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection'], label: 'conversaciones' },
+      CONVERSATIONS:                  { types: ['onsite_conversion.messaging_conversation_started_7d'],              label: 'conversaciones' },
+      MESSAGING_PURCHASE_CONVERSION:  { types: ['onsite_conversion.messaging_conversation_started_7d'],              label: 'conversaciones' },
+      MESSAGING_APPOINTMENT_CONVERSION:{ types: ['onsite_conversion.messaging_conversation_started_7d'],             label: 'conversaciones' },
+      LEAD_GENERATION:                { types: ['lead', 'onsite_conversion.lead_grouped'],                           label: 'leads' },
+      QUALITY_LEAD:                   { types: ['lead', 'onsite_conversion.lead_grouped'],                           label: 'leads' },
+      OFFSITE_CONVERSIONS:            { types: ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'], label: 'compras' },
+      VALUE:                          { types: ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'], label: 'compras' },
+      AD_RECALL_LIFT:                 { useMetric: 'impressions', label: 'impresiones' },
+      APP_INSTALLS:                   { types: ['app_install', 'mobile_app_install'],                                label: 'instalaciones' },
     };
 
-    // Etiqueta legible por objective
-    const OBJECTIVE_LABEL = {
-      MESSAGES: 'mensajes',
-      OUTCOME_ENGAGEMENT: 'interacciones',
-      LEAD_GENERATION: 'leads',
-      OUTCOME_LEADS: 'leads',
-      CONVERSIONS: 'compras',
-      OUTCOME_SALES: 'compras',
-      LINK_CLICKS: 'clics',
-      OUTCOME_TRAFFIC: 'clics',
-      POST_ENGAGEMENT: 'interacciones',
-      PAGE_LIKES: 'me gusta',
-      VIDEO_VIEWS: 'reproducciones',
-      OUTCOME_AWARENESS: 'alcance',
-      OUTCOME_APP_PROMOTION: 'instalaciones',
-      APP_INSTALLS: 'instalaciones',
-      REACH: 'alcance',
-      BRAND_AWARENESS: 'alcance',
+    // Fallback por objective de campaña (cuando optimization_goal del adset no está mapeado o no existe)
+    const OBJECTIVE_FALLBACK = {
+      OUTCOME_AWARENESS:    { useMetric: 'reach', label: 'alcance' },
+      REACH:                { useMetric: 'reach', label: 'alcance' },
+      BRAND_AWARENESS:      { useMetric: 'reach', label: 'alcance' },
+      OUTCOME_TRAFFIC:      { types: ['link_click'], label: 'clics' },
+      LINK_CLICKS:          { types: ['link_click'], label: 'clics' },
+      OUTCOME_ENGAGEMENT:   { types: ['post_engagement'], label: 'interacciones' },
+      POST_ENGAGEMENT:      { types: ['post_engagement'], label: 'interacciones' },
+      PAGE_LIKES:           { types: ['like'], label: 'me gusta' },
+      MESSAGES:             { types: ['onsite_conversion.messaging_conversation_started_7d'], label: 'conversaciones' },
+      OUTCOME_LEADS:        { types: ['lead', 'onsite_conversion.lead_grouped'], label: 'leads' },
+      LEAD_GENERATION:      { types: ['lead', 'onsite_conversion.lead_grouped'], label: 'leads' },
+      OUTCOME_SALES:        { types: ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'], label: 'compras' },
+      CONVERSIONS:          { types: ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'], label: 'compras' },
+      VIDEO_VIEWS:          { types: ['video_view'], label: 'reproducciones' },
+      OUTCOME_APP_PROMOTION:{ types: ['app_install', 'mobile_app_install'], label: 'instalaciones' },
+      APP_INSTALLS:         { types: ['app_install', 'mobile_app_install'], label: 'instalaciones' },
     };
 
     // Enriquecer cada campaña con objective, status, result y result_label
@@ -124,18 +132,36 @@ export default async function handler(req, res) {
       c.status = meta.status || null;
       c.effective_status = meta.effective_status || null;
 
-      const types = OBJECTIVE_TO_RESULT[c.objective] || [];
-      if (types.length > 0) {
-        c.result = (c.actions || []).reduce((s, a) => {
-          return types.includes(a.action_type) ? s + parseInt(a.value || 0) : s;
-        }, 0);
+      // 1) Intentar con optimization_goal del primer adset (la fuente más precisa)
+      const firstAdset = (meta.adsets || [])[0];
+      const optGoal = firstAdset?.optimization_goal;
+      const destType = firstAdset?.destination_type;
+
+      let rule = optGoal ? OPT_GOAL_MAP[optGoal] : null;
+
+      // 2) Si destination_type apunta a Messenger/WhatsApp, forzar conversaciones
+      if (!rule && (destType === 'MESSENGER' || destType === 'WHATSAPP' || destType === 'INSTAGRAM_DIRECT')) {
+        rule = { types: ['onsite_conversion.messaging_conversation_started_7d'], label: 'conversaciones' };
+      }
+
+      // 3) Fallback al objective de la campaña
+      if (!rule) {
+        rule = OBJECTIVE_FALLBACK[c.objective] || { types: ['link_click'], label: 'resultados' };
+      }
+
+      // Calcular result según la regla
+      if (rule.useMetric === 'reach') {
+        c.result = parseInt(c.reach || 0);
+      } else if (rule.useMetric === 'impressions') {
+        c.result = parseInt(c.impressions || 0);
       } else {
-        // Fallback razonable si no conocemos el objective: usar link_clicks o 0
         c.result = (c.actions || []).reduce((s, a) => {
-          return a.action_type === 'link_click' ? s + parseInt(a.value || 0) : s;
+          return rule.types.includes(a.action_type) ? s + parseInt(a.value || 0) : s;
         }, 0);
       }
-      c.result_label = OBJECTIVE_LABEL[c.objective] || 'resultados';
+      c.result_label = rule.label;
+      c.optimization_goal = optGoal || null;
+      c.destination_type = destType || null;
     }
 
     // Calcular totales
