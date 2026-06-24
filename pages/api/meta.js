@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const timeRangePrev = `{"since":"${sPrev}","until":"${uPrev}"}`;
 
   try {
-    const [rDaily, rCampaigns, rPrev] = await Promise.all([
+    const [rDaily, rCampaigns, rPrev, rCampMeta] = await Promise.all([
       fetch(
         `https://graph.facebook.com/v21.0/${account_id}/insights` +
         `?fields=impressions,clicks,spend,reach,cpm,cpc,ctr,frequency,actions` +
@@ -50,14 +50,18 @@ export default async function handler(req, res) {
         `?fields=impressions,clicks,spend,reach,actions` +
         `&time_range=${timeRangePrev}&time_increment=1&access_token=${token}`
       ),
+      fetch(
+        `https://graph.facebook.com/v21.0/${account_id}/campaigns` +
+        `?fields=id,objective,status,effective_status&limit=200&access_token=${token}`
+      ),
     ]);
 
     const safeJson = async (r) => {
       const text = await r.text();
       try { return JSON.parse(text); } catch { return { error: { message: `Non-JSON response (status ${r.status}): ${text.slice(0,200)}` } }; }
     };
-    const [dDaily, dCampaigns, dPrev] = await Promise.all([
-      safeJson(rDaily), safeJson(rCampaigns), safeJson(rPrev)
+    const [dDaily, dCampaigns, dPrev, dCampMeta] = await Promise.all([
+      safeJson(rDaily), safeJson(rCampaigns), safeJson(rPrev), safeJson(rCampMeta)
     ]);
 
     if (dDaily.error) return res.status(400).json({ error: dDaily.error.message || dDaily.error, _full: dDaily.error });
@@ -65,6 +69,74 @@ export default async function handler(req, res) {
     const rows = dDaily.data || [];
     const camps = dCampaigns.data || [];
     const rowsPrev = dPrev.data || [];
+
+    // Mapa de objective/status por campaign_id
+    const campMetaById = {};
+    for (const cm of (dCampMeta.data || [])) {
+      campMetaById[cm.id] = { objective: cm.objective, status: cm.status, effective_status: cm.effective_status };
+    }
+
+    // Mapeo objective → action_type(s) que cuentan como "Resultado"
+    // Soporta tanto objectives clásicos como los nuevos OUTCOME_*
+    const OBJECTIVE_TO_RESULT = {
+      MESSAGES:                ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.total_messaging_connection'],
+      OUTCOME_ENGAGEMENT:      ['onsite_conversion.messaging_conversation_started_7d', 'post_engagement'],
+      LEAD_GENERATION:         ['lead', 'onsite_conversion.lead_grouped'],
+      OUTCOME_LEADS:           ['lead', 'onsite_conversion.lead_grouped'],
+      CONVERSIONS:             ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'],
+      OUTCOME_SALES:           ['purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase'],
+      LINK_CLICKS:             ['link_click'],
+      OUTCOME_TRAFFIC:         ['link_click'],
+      POST_ENGAGEMENT:         ['post_engagement'],
+      PAGE_LIKES:              ['like'],
+      VIDEO_VIEWS:             ['video_view'],
+      OUTCOME_AWARENESS:       ['post_engagement'],
+      OUTCOME_APP_PROMOTION:   ['app_install', 'mobile_app_install'],
+      APP_INSTALLS:            ['app_install', 'mobile_app_install'],
+      REACH:                   [], // reach es métrica, no action
+      BRAND_AWARENESS:         [],
+    };
+
+    // Etiqueta legible por objective
+    const OBJECTIVE_LABEL = {
+      MESSAGES: 'mensajes',
+      OUTCOME_ENGAGEMENT: 'interacciones',
+      LEAD_GENERATION: 'leads',
+      OUTCOME_LEADS: 'leads',
+      CONVERSIONS: 'compras',
+      OUTCOME_SALES: 'compras',
+      LINK_CLICKS: 'clics',
+      OUTCOME_TRAFFIC: 'clics',
+      POST_ENGAGEMENT: 'interacciones',
+      PAGE_LIKES: 'me gusta',
+      VIDEO_VIEWS: 'reproducciones',
+      OUTCOME_AWARENESS: 'alcance',
+      OUTCOME_APP_PROMOTION: 'instalaciones',
+      APP_INSTALLS: 'instalaciones',
+      REACH: 'alcance',
+      BRAND_AWARENESS: 'alcance',
+    };
+
+    // Enriquecer cada campaña con objective, status, result y result_label
+    for (const c of camps) {
+      const meta = campMetaById[c.campaign_id] || {};
+      c.objective = meta.objective || null;
+      c.status = meta.status || null;
+      c.effective_status = meta.effective_status || null;
+
+      const types = OBJECTIVE_TO_RESULT[c.objective] || [];
+      if (types.length > 0) {
+        c.result = (c.actions || []).reduce((s, a) => {
+          return types.includes(a.action_type) ? s + parseInt(a.value || 0) : s;
+        }, 0);
+      } else {
+        // Fallback razonable si no conocemos el objective: usar link_clicks o 0
+        c.result = (c.actions || []).reduce((s, a) => {
+          return a.action_type === 'link_click' ? s + parseInt(a.value || 0) : s;
+        }, 0);
+      }
+      c.result_label = OBJECTIVE_LABEL[c.objective] || 'resultados';
+    }
 
     // Calcular totales
     const calcTotals = (data) => {

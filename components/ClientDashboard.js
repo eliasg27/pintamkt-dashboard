@@ -529,7 +529,8 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                     </thead>
                     <tbody>
                       {camps.map((camp, i) => {
-                        const res = (camp.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
+                        const res = camp.result != null ? camp.result : (camp.actions || []).reduce((s, a) => s + parseInt(a.value || 0), 0);
+                        const resLbl = camp.result_label || 'resultados';
                         return (
                           <tr key={i} style={{ borderBottom: '.5px solid rgba(0,0,0,.06)', cursor: 'pointer' }} onClick={() => {
                             if (!camp.campaign_id) return;
@@ -555,7 +556,12 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                             <td style={{ padding: '12px 14px' }}><span style={{ fontWeight: 600, color: '#7c3aed', fontSize: 13 }}>{fp(parseFloat(camp.ctr || 0))}</span></td>
                             <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13 }}>{fm(parseFloat(camp.spend || 0))}</td>
                             <td style={{ padding: '12px 14px' }}>
-                              {res > 0 ? <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{res}</span> : <span style={{ color: '#a1a1aa' }}>—</span>}
+                              {res > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{fmt(res)}</span>
+                                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 9, color: '#a1a1aa', textTransform: 'lowercase', paddingLeft: 4 }}>{resLbl}</span>
+                                </div>
+                              ) : <span style={{ color: '#a1a1aa' }}>—</span>}
                             </td>
                             <td style={{ padding: '12px 14px', color: '#a1a1aa', fontSize: 12 }}>→</td>
                           </tr>
