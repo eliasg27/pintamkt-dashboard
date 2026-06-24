@@ -480,8 +480,21 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                 { label: 'Mensajes', val: fmt(t.messages) || '0', sub: 'conversaciones', delta: dl.messages, inv: false, color: '#1D9E75' },
                 { label: 'Leads', val: fmt(t.leads) || '0', sub: 'formularios', delta: dl.leads, inv: false, color: '#2563eb' },
                 { label: 'Compras', val: fmt(t.purchases) || '0', sub: 'transacciones', delta: dl.purchases, inv: false, color: '#7c3aed' },
-                { label: 'ROAS', val: t.roas ? t.roas.toFixed(2) + 'x' : '—', sub: 'retorno en ads', delta: null, inv: false, color: '#f59e0b' },
+                { label: 'Costo/Resultado', val: (() => { const totalRes = (t.messages||0)+(t.leads||0)+(t.purchases||0); return totalRes > 0 && t.spend > 0 ? fm(t.spend/totalRes) : '—'; })(), sub: 'por conversión', delta: null, inv: true, color: '#f59e0b' },
               ].map(k => {
+                const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
+                return (
+                  <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
+                    <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
+                    <div className="kpi-lbl">{k.label}</div>
+                    <div className="kpi-val">{k.val}</div>
+                    <div className="kpi-sub">{k.sub}
+                      {k.delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
                 const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
                 return (
                   <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
@@ -522,7 +535,7 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans,sans-serif' }}>
                     <thead>
                       <tr style={{ background: '#f9f9f8' }}>
-                        {['Campaña', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Resultados', ''].map(h => (
+                        {['Campaña', 'Estado', 'Impresiones', 'Clics', 'CTR', 'Gasto', 'Resultados', 'Costo/Res.', ''].map(h => (
                           <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', borderBottom: '.5px solid rgba(0,0,0,.08)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
                         ))}
                       </tr>
@@ -560,6 +573,14 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
                                   <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>{fmt(res)}</span>
                                   <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 9, color: '#a1a1aa', textTransform: 'lowercase', paddingLeft: 4 }}>{resLbl}</span>
+                                </div>
+                              ) : <span style={{ color: '#a1a1aa' }}>—</span>}
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              {res > 0 && parseFloat(camp.spend || 0) > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                                  <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: 13, fontWeight: 700, color: '#18181b' }}>{fm(parseFloat(camp.spend) / res)}</span>
+                                  <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 9, color: '#a1a1aa', paddingLeft: 2 }}>por {resLbl.replace('conversaciones','conv.').replace('interacciones','inter.')}</span>
                                 </div>
                               ) : <span style={{ color: '#a1a1aa' }}>—</span>}
                             </td>
