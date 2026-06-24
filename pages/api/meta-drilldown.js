@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   const { account_id, campaign_id, adset_id, since, until } = req.query;
   const s = since || new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
   const u = until || new Date().toISOString().slice(0,10);
-  const timeRange = `{"since":"${s}","until":"${u}"}`;
+  const timeRange = encodeURIComponent(JSON.stringify({ since: s, until: u }));
   const fields = 'impressions,clicks,spend,reach,cpm,cpc,ctr,actions';
 
   try {
