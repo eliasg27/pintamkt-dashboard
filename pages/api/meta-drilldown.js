@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       const insightsMap = {};
       (adsInsights.data || []).forEach(i => { insightsMap[i.ad_id] = i; });
       const result = (ads.data || []).map(a => ({ ...a, insights: insightsMap[a.id] || {} }));
-      return res.json({ ads: result });
+      return res.json({ ads: result, _debug: { adsInsightsCount: (adsInsights.data||[]).length, adsCount: (ads.data||[]).length, sampleInsight: (adsInsights.data||[])[0] || null } });
     }
 
     // Adsets dentro de una campaña
