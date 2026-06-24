@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const s = since || new Date(Date.now()-30*24*60*60*1000).toISOString().slice(0,10);
   const u = until || new Date().toISOString().slice(0,10);
   const timeRange = encodeURIComponent(JSON.stringify({ since: s, until: u }));
-  const fields = 'impressions,clicks,spend,reach,cpm,cpc,ctr,actions';
+  const fields = 'impressions,clicks,spend,reach,cpm,cpc,ctr,actions,date_start,date_stop';
 
   try {
     // Ads dentro de un adset
@@ -16,9 +16,13 @@ export default async function handler(req, res) {
         fetch(`https://graph.facebook.com/v21.0/${adset_id}/insights?fields=${fields}&time_range=${timeRange}&level=ad&limit=50&access_token=${token}`).then(r=>r.json()),
       ]);
       const insightsMap = {};
-      (adsInsights.data || []).forEach(i => { insightsMap[i.ad_id] = i; });
+      (adsInsights.data || []).forEach(i => {
+        // Meta puede devolver ad_id o id según el nivel
+        const key = i.ad_id || i.id;
+        if (key) insightsMap[key] = i;
+      });
       const result = (ads.data || []).map(a => ({ ...a, insights: insightsMap[a.id] || {} }));
-      return res.json({ ads: result, _debug: { adsInsightsCount: (adsInsights.data||[]).length, adsCount: (ads.data||[]).length, sampleInsight: (adsInsights.data||[])[0] || null } });
+      return res.json({ ads: result });
     }
 
     // Adsets dentro de una campaña
