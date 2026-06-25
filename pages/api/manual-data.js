@@ -6,7 +6,8 @@ const sb = createClient(
 );
 
 export default async function handler(req, res) {
-  const { slug, type } = req.method === 'GET' ? req.query : req.body;
+  // slug y type siempre vienen como query params en la URL
+  const { slug, type } = req.query;
 
   if (!slug || !type) return res.status(400).json({ error: 'Falta slug o type' });
 
