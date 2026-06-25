@@ -495,21 +495,6 @@ export default function ClientDashboard({ client: c, dateFrom: df, dateTo: dt })
                 );
               })}
             </div>
-                const good = k.delta == null ? null : (k.inv ? k.delta <= 0 : k.delta >= 0);
-                return (
-                  <div key={k.label} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: 12, padding: '14px 16px', position: 'relative' }}>
-                    <div style={{ height: 3, background: k.color, borderRadius: '12px 12px 0 0', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                    <div className="kpi-lbl">{k.label}</div>
-                    <div className="kpi-val">{k.val}</div>
-                    <div className="kpi-sub">{k.sub}
-                      {k.delta != null && <span className={good ? 'kpi-badge-up' : 'kpi-badge-dn'}>{k.delta > 0 ? '↑' : '↓'}{Math.abs(k.delta)}%</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* SECCIÓN: CAMPAÑAS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D9E75' }} />
               <span style={{ fontFamily: 'Inter,sans-serif', fontSize: 10, fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '.08em' }}>Campañas · {camps.length} en el período</span>
